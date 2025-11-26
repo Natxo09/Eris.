@@ -12,7 +12,8 @@ struct MessageView: View {
     let isUser: Bool
 
     // Parse thinking content from message
-    private var parsedContent: (thinking: String?, response: String) {
+    // Returns: (thinking content, response text, is streaming thinking)
+    private var parsedContent: (thinking: String?, response: String, isStreaming: Bool) {
         parseThinkingContent(content)
     }
 
@@ -38,9 +39,9 @@ struct MessageView: View {
         } else {
             // Assistant messages without bubble, full width
             VStack(alignment: .leading, spacing: 12) {
-                // Show thinking block if present
+                // Show thinking block if present (including during streaming)
                 if let thinking = parsedContent.thinking {
-                    ThinkingView(content: thinking)
+                    ThinkingView(content: thinking, isStreaming: parsedContent.isStreaming)
                 }
 
                 // Show response
@@ -52,33 +53,69 @@ struct MessageView: View {
     }
 
     // Extract <think>...</think> content from message
-    private func parseThinkingContent(_ text: String) -> (thinking: String?, response: String) {
-        // Pattern to match <think>...</think> tags
-        let pattern = #"<think>([\s\S]*?)</think>"#
+    // Supports both closed tags and open tags (during streaming)
+    // Returns: (thinking content, response text, is streaming)
+    private func parseThinkingContent(_ text: String) -> (thinking: String?, response: String, isStreaming: Bool) {
+        // First try to match closed <think>...</think> tags
+        let closedPattern = #"<think>([\s\S]*?)</think>"#
 
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: []),
-              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-              let thinkingRange = Range(match.range(at: 1), in: text) else {
-            return (nil, text)
+        if let closedRegex = try? NSRegularExpression(pattern: closedPattern, options: []),
+           let match = closedRegex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let thinkingRange = Range(match.range(at: 1), in: text) {
+
+            var thinking = String(text[thinkingRange])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Clean any remaining tags
+            thinking = thinking
+                .replacingOccurrences(of: "<think>", with: "")
+                .replacingOccurrences(of: "</think>", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Remove the entire <think>...</think> block from the response
+            let response = closedRegex.stringByReplacingMatches(
+                in: text,
+                range: NSRange(text.startIndex..., in: text),
+                withTemplate: ""
+            ).trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Closed tag = not streaming
+            return (thinking.isEmpty ? nil : thinking, response, false)
         }
 
-        let thinking = String(text[thinkingRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        // If no closed tag, check for open <think> tag (streaming scenario)
+        if let openTagRange = text.range(of: "<think>") {
+            // Everything after <think> is thinking content (still in progress)
+            var thinkingContent = String(text[openTagRange.upperBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Remove the entire <think>...</think> block from the response
-        let response = regex.stringByReplacingMatches(
-            in: text,
-            range: NSRange(text.startIndex..., in: text),
-            withTemplate: ""
-        ).trimmingCharacters(in: .whitespacesAndNewlines)
+            // Clean any remaining tags
+            thinkingContent = thinkingContent
+                .replacingOccurrences(of: "<think>", with: "")
+                .replacingOccurrences(of: "</think>", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        return (thinking.isEmpty ? nil : thinking, response)
+            // Everything before <think> is the response (if any)
+            let response = String(text[..<openTagRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Open tag without close = streaming
+            return (thinkingContent.isEmpty ? "" : thinkingContent, response, true)
+        }
+
+        return (nil, text, false)
     }
 }
 
 // MARK: - Thinking View (Collapsible)
 struct ThinkingView: View {
     let content: String
+    var isStreaming: Bool = false
     @State private var isExpanded = false
+
+    private var hasContent: Bool {
+        !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -94,17 +131,25 @@ struct ThinkingView: View {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Color(UIColor.secondaryLabel))
 
-                    Text("Thinking")
+                    Text(isStreaming ? "Thinking..." : "Thinking")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(Color(UIColor.secondaryLabel))
 
+                    if isStreaming {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                            .tint(Color(UIColor.secondaryLabel))
+                    }
+
                     Spacer()
 
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color(UIColor.tertiaryLabel))
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    if hasContent {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color(UIColor.tertiaryLabel))
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
@@ -114,9 +159,10 @@ struct ThinkingView: View {
                 )
             }
             .buttonStyle(.plain)
+            .disabled(!hasContent)
 
             // Expandable content
-            if isExpanded {
+            if isExpanded && hasContent {
                 Text(content)
                     .font(.footnote)
                     .foregroundStyle(.secondary)

@@ -133,12 +133,20 @@ struct ChatView: View {
                         scrollManager.scrollToBottom()
                     }
                 }) {
-                    Image(systemName: "arrow.down")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Circle().fill(Color.gray.opacity(0.9)))
-                        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                    if #available(iOS 26.0, *) {
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color(UIColor.label))
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
+                    } else {
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(Color.gray.opacity(0.9)))
+                            .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                    }
                 }
                 .padding(.bottom, 16)
                 .opacity(scrollManager.showScrollToBottomButton ? 1 : 0)
