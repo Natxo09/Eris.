@@ -27,19 +27,19 @@ struct AboutDeveloperView: View {
                             Text("Ignacio Palacio")
                                 .font(.title2)
                                 .fontWeight(.bold)
-                            
-                            Text("iOS Developer")
+
+                            Text("Full Stack Developer")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    
+
                     // Bio Section
                     VStack(alignment: .leading, spacing: 12) {
                         Text("About")
                             .font(.headline)
-                        
-                        Text("Passionate iOS developer focused on creating innovative apps that leverage Apple's latest technologies. Specializing in machine learning integration and privacy-focused applications.")
+
+                        Text("Full stack developer building apps across web and mobile platforms. Currently focused on iOS development with Swift and on-device machine learning using Apple's MLX framework.")
                             .font(.body)
                             .foregroundStyle(.secondary)
                     }
@@ -88,43 +88,7 @@ struct AboutDeveloperView: View {
                     .background(Color(UIColor.secondarySystemGroupedBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal, 20)
-                    
-                    // Projects Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Other Projects")
-                            .font(.headline)
-                            .padding(.horizontal, 20)
-                        
-                        VStack(spacing: 0) {
-                            ProjectRow(
-                                name: "Eris",
-                                description: "Private AI chat powered by MLX",
-                                icon: "message.badge.filled.fill"
-                            )
-                            
-                            Divider()
-                                .padding(.leading, 64)
-                            
-                            Button(action: {
-                                if let url = URL(string: "https://keintimer.natxo.dev") {
-                                    selectedURL = url
-                                    showSafari = true
-                                    HapticManager.shared.impact(.light)
-                                }
-                            }) {
-                                ProjectRow(
-                                    name: "KeinTimer",
-                                    description: "Time tracking made simple",
-                                    imageIcon: "KeinTimerIcon"
-                                )
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal, 20)
-                    }
-                    
+
                     // Footer
                     VStack(spacing: 8) {
                         Text("Made with ❤️ in Spain")
@@ -199,63 +163,6 @@ struct DeveloperLinkRow: View {
             .padding(.vertical, 12)
         }
         .buttonStyle(PlainButtonStyle())
-    }
-}
-
-struct ProjectRow: View {
-    let name: String
-    let description: String
-    let icon: String?
-    let imageIcon: String?
-    
-    init(name: String, description: String, icon: String? = nil, imageIcon: String? = nil) {
-        self.name = name
-        self.description = description
-        self.icon = icon
-        self.imageIcon = imageIcon
-    }
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            if let icon = icon {
-                Image(systemName: icon)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .frame(width: 28, height: 28)
-                    .background(Color.gray.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            } else if let imageIcon = imageIcon {
-                Image(imageIcon)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 28, height: 28)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
-                    )
-            }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                
-                Text(description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            Spacer()
-            
-            if imageIcon == "KeinTimerIcon" {
-                Image(systemName: "arrow.up.right.square")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
     }
 }
 

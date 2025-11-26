@@ -195,10 +195,7 @@ struct ChatView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if let activeModel = modelManager.activeModel {
-                    Button(action: {
-                        HapticManager.shared.selection()
-                        showModelPicker.toggle()
-                    }) {
+                    if #available(iOS 26.0, *) {
                         HStack(spacing: 6) {
                             Image(systemName: "cpu")
                                 .font(.system(size: 14, weight: .medium))
@@ -210,16 +207,38 @@ struct ChatView: View {
                         .foregroundStyle(Color(UIColor.label))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(UIColor.tertiarySystemFill))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color(UIColor.separator).opacity(0.3), lineWidth: 1)
-                                )
-                        )
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 8))
+                        .onTapGesture {
+                            HapticManager.shared.selection()
+                            showModelPicker.toggle()
+                        }
+                    } else {
+                        Button(action: {
+                            HapticManager.shared.selection()
+                            showModelPicker.toggle()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "cpu")
+                                    .font(.system(size: 14, weight: .medium))
+                                Text(formatModelName(activeModel))
+                                    .font(.system(size: 14, weight: .medium))
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .foregroundStyle(Color(UIColor.label))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(UIColor.tertiarySystemFill))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color(UIColor.separator).opacity(0.3), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
             }
         }

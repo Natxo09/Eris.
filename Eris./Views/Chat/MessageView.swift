@@ -25,7 +25,7 @@ struct MessageView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .foregroundStyle(Color(UIColor.label))
-                    .glassEffect(.regular, in: .capsule)
+                    .glassEffect(.regular, in: .rect(cornerRadius: 18))
             } else {
                 Text(content)
                     .padding(.horizontal, 14)
