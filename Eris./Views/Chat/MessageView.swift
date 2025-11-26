@@ -190,23 +190,23 @@ struct MarkdownMessageView: View {
             ForEach(parseMarkdown(content), id: \.id) { block in
                 switch block.type {
                 case .text:
-                    Text(block.content)
+                    Text(processInlineMarkdown(block.content))
                         .foregroundStyle(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                 case .header1:
-                    Text(block.content)
+                    Text(processInlineMarkdown(block.content))
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundStyle(.primary)
                         .padding(.top, 8)
                 case .header2:
-                    Text(block.content)
+                    Text(processInlineMarkdown(block.content))
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(.primary)
                         .padding(.top, 6)
                 case .header3:
-                    Text(block.content)
+                    Text(processInlineMarkdown(block.content))
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundStyle(.primary)
@@ -248,6 +248,13 @@ struct MarkdownMessageView: View {
                         .cornerRadius(4)
                 case .codeBlock:
                     CodeBlockView(code: block.content, language: block.metadata)
+                case .strikethrough:
+                    Text(block.content)
+                        .strikethrough()
+                        .foregroundStyle(.secondary)
+                case .table:
+                    let tableLines = block.content.split(separator: "\n").map(String.init)
+                    MarkdownTableView(tableData: MarkdownTable(from: tableLines))
                 }
             }
         }
@@ -262,10 +269,16 @@ struct MarkdownMessageView: View {
         var inCodeBlock = false
         var codeBlockContent = ""
         var codeBlockLanguage: String?
-        
+
+        // Helper to check if a line is a table row
+        func isTableLine(_ line: String) -> Bool {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            return trimmed.starts(with: "|") && trimmed.contains("|")
+        }
+
         while i < lines.count {
             let line = String(lines[i])
-            
+
             // Check for code block
             if line.starts(with: "```") {
                 if inCodeBlock {
@@ -293,13 +306,28 @@ struct MarkdownMessageView: View {
                 i += 1
                 continue
             }
-            
+
             if inCodeBlock {
                 codeBlockContent += line + "\n"
                 i += 1
                 continue
             }
-            
+
+            // Check for table (consecutive lines starting with |)
+            if isTableLine(line) {
+                var tableLines: [String] = [line]
+                i += 1
+                while i < lines.count && isTableLine(String(lines[i])) {
+                    tableLines.append(String(lines[i]))
+                    i += 1
+                }
+                blocks.append(MarkdownBlock(
+                    type: .table,
+                    content: tableLines.joined(separator: "\n")
+                ))
+                continue
+            }
+
             // Headers
             if line.starts(with: "### ") {
                 blocks.append(MarkdownBlock(type: .header3, content: String(line.dropFirst(4))))
@@ -317,6 +345,17 @@ struct MarkdownMessageView: View {
                 let number = String(match.1)
                 let content = String(match.2)
                 blocks.append(MarkdownBlock(type: .numberedList, content: content, metadata: number + "."))
+            }
+            // Strikethrough text
+            else if line.contains("~~") {
+                let parts = line.split(separator: "~~", omittingEmptySubsequences: false)
+                for (index, part) in parts.enumerated() {
+                    if index % 2 == 1 {
+                        blocks.append(MarkdownBlock(type: .strikethrough, content: String(part)))
+                    } else if !part.isEmpty {
+                        blocks.append(MarkdownBlock(type: .text, content: String(part)))
+                    }
+                }
             }
             // Bold text
             else if line.contains("**") {
@@ -440,7 +479,7 @@ struct MarkdownMessageView: View {
             let codeRegex = try NSRegularExpression(pattern: codePattern)
             let nsString = result.description as NSString
             let matches = codeRegex.matches(in: result.description, range: NSRange(location: 0, length: nsString.length))
-            
+
             for match in matches.reversed() {
                 let matchRange = match.range(at: 1)
                 if let swiftRange = Range(matchRange, in: result.description),
@@ -453,7 +492,78 @@ struct MarkdownMessageView: View {
                 }
             }
         } catch {}
-        
+
+        // Handle strikethrough (~~text~~)
+        do {
+            let strikethroughPattern = #"~~([^~]+)~~"#
+            let strikethroughRegex = try NSRegularExpression(pattern: strikethroughPattern)
+            let nsString = result.description as NSString
+            let matches = strikethroughRegex.matches(in: result.description, range: NSRange(location: 0, length: nsString.length))
+
+            for match in matches.reversed() {
+                let matchRange = match.range(at: 1)
+                if let swiftRange = Range(matchRange, in: result.description),
+                   let attributedRange = Range(match.range, in: result) {
+                    let strikeText = String(result.description[swiftRange])
+                    var replacement = AttributedString(strikeText)
+                    replacement.strikethroughStyle = .single
+                    replacement.foregroundColor = .secondary
+                    result.replaceSubrange(attributedRange, with: replacement)
+                }
+            }
+        } catch {}
+
+        // Handle markdown links ([text](url))
+        do {
+            let linkPattern = #"\[([^\]]+)\]\(([^)]+)\)"#
+            let linkRegex = try NSRegularExpression(pattern: linkPattern)
+            let nsString = result.description as NSString
+            let matches = linkRegex.matches(in: result.description, range: NSRange(location: 0, length: nsString.length))
+
+            for match in matches.reversed() {
+                let textRange = match.range(at: 1)
+                let urlRange = match.range(at: 2)
+                if let swiftTextRange = Range(textRange, in: result.description),
+                   let swiftUrlRange = Range(urlRange, in: result.description),
+                   let attributedRange = Range(match.range, in: result) {
+                    let linkText = String(result.description[swiftTextRange])
+                    let urlString = String(result.description[swiftUrlRange])
+
+                    var replacement = AttributedString(linkText)
+                    if let url = URL(string: urlString) {
+                        replacement.link = url
+                        replacement.foregroundColor = .blue
+                        replacement.underlineStyle = .single
+                    }
+                    result.replaceSubrange(attributedRange, with: replacement)
+                }
+            }
+        } catch {}
+
+        // Handle plain URLs (https://... or http://...)
+        do {
+            let urlPattern = #"(https?://[^\s\]\)<>]+)"#
+            let urlRegex = try NSRegularExpression(pattern: urlPattern)
+            let currentString = String(result.characters)
+            let nsString = currentString as NSString
+            let matches = urlRegex.matches(in: currentString, range: NSRange(location: 0, length: nsString.length))
+
+            for match in matches.reversed() {
+                if let swiftRange = Range(match.range, in: currentString),
+                   let attributedRange = Range(match.range, in: result) {
+                    let urlString = String(currentString[swiftRange])
+
+                    var replacement = AttributedString(urlString)
+                    if let url = URL(string: urlString) {
+                        replacement.link = url
+                        replacement.foregroundColor = .blue
+                        replacement.underlineStyle = .single
+                    }
+                    result.replaceSubrange(attributedRange, with: replacement)
+                }
+            }
+        } catch {}
+
         return result
     }
 }
@@ -471,43 +581,57 @@ struct MarkdownBlock: Identifiable {
         case header3
         case bold
         case italic
+        case strikethrough
         case bulletPoint
         case numberedList
         case code
         case codeBlock
+        case table
     }
 }
 
 #Preview {
-    VStack(spacing: 20) {
-        MessageView(
-            content: "Hello, this is a user message",
-            isUser: true
-        )
-        
-        MessageView(
-            content: """
-            **Verificación de Instalación**
-            
-            Primero, asegúrate de tener Homebrew instalado:
-            
-            ```bash
-            # Instala Homebrew
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            ```
-            
-            **Instalación de Python**
-            
-            1. Abre Terminal
-            2. Ejecuta el comando: `brew install python3`
-            3. Verifica la instalación: `python3 --version`
-            
-            - Python 3.x es recomendado
-            - Incluye pip para gestionar paquetes
-            - Compatible con virtual environments
-            """,
-            isUser: false
-        )
+    ScrollView {
+        VStack(spacing: 20) {
+            MessageView(
+                content: "Hello, this is a user message",
+                isUser: true
+            )
+
+            MessageView(
+                content: """
+                **Verificación de Instalación**
+
+                Primero, asegúrate de tener Homebrew instalado:
+
+                ```bash
+                # Instala Homebrew
+                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                ```
+
+                **Instalación de Python**
+
+                1. Abre Terminal
+                2. Ejecuta el comando: `brew install python3`
+                3. Verifica la instalación: `python3 --version`
+
+                - Python 3.x es recomendado
+                - Incluye pip para gestionar paquetes
+                - Compatible con virtual environments
+
+                ~~Este texto está tachado~~
+
+                Visita [Apple](https://apple.com) para más información.
+
+                | Comando | Descripción |
+                |---------|-------------|
+                | `ls` | Lista archivos |
+                | `cd` | Cambia directorio |
+                | `pwd` | Muestra ruta actual |
+                """,
+                isUser: false
+            )
+        }
+        .padding()
     }
-    .padding()
 }
