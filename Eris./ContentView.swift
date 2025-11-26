@@ -15,7 +15,6 @@ struct ContentView: View {
     @State private var showDeleteAlert = false
     @State private var threadToDelete: Thread?
     @State private var showPinLimitAlert = false
-    @State private var showIOS26BetaWarning = DeviceUtils.isIOS26Beta && !UserDefaults.standard.bool(forKey: "hasDisabledIOS26BetaWarning")
     
     // Computed property to get sorted threads with pinned ones first
     private var sortedThreads: [Thread] {
@@ -204,17 +203,6 @@ struct ContentView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("You can only pin up to 3 chats. Unpin another chat first.")
-            }
-            .alert("iOS 26 Beta Warning", isPresented: $showIOS26BetaWarning) {
-                Button("Accept") {
-                    showIOS26BetaWarning = false
-                }
-                Button("Accept and Don't Show Again") {
-                    showIOS26BetaWarning = false
-                    UserDefaults.standard.set(true, forKey: "hasDisabledIOS26BetaWarning")
-                }
-            } message: {
-                Text("You are running iOS 26 beta. Beta versions of iOS tend to have higher device temperatures, which may cause rapid battery drain and potential battery degradation with intensive app usage. We recommend limiting extended use of this app until iOS 26 is officially released.")
             }
         }
     }

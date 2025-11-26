@@ -14,7 +14,7 @@ enum ModelCategory: String, CaseIterable {
     case general = "General Purpose"
     case reasoning = "Reasoning"
     case code = "Code"
-    
+
     var icon: String {
         switch self {
         case .general: return "cpu"
@@ -22,7 +22,7 @@ enum ModelCategory: String, CaseIterable {
         case .code: return "chevron.left.forwardslash.chevron.right"
         }
     }
-    
+
     var description: String {
         switch self {
         case .general: return "Versatile models for everyday conversations"
@@ -38,7 +38,7 @@ enum ModelCompatibility {
     case compatible
     case risky
     case notRecommended
-    
+
     var description: String {
         switch self {
         case .recommended: return "Recommended for your device"
@@ -47,7 +47,7 @@ enum ModelCompatibility {
         case .notRecommended: return "Not recommended - High crash risk"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .recommended: return "checkmark.circle.fill"
@@ -56,7 +56,7 @@ enum ModelCompatibility {
         case .notRecommended: return "xmark.circle.fill"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .recommended: return .green
@@ -78,11 +78,36 @@ struct AIModel: Identifiable {
     let minimumChipRequired: DeviceUtils.ChipFamily
     let parameterCount: String // e.g., "1B", "3.5B"
     let quantization: String // e.g., "4-bit", "8-bit"
-    
+    let isLegacy: Bool // For older models kept for compatibility
+
+    init(
+        id: String,
+        configuration: ModelConfiguration,
+        category: ModelCategory,
+        displayName: String,
+        description: String,
+        estimatedRAMUsage: Int,
+        minimumChipRequired: DeviceUtils.ChipFamily,
+        parameterCount: String,
+        quantization: String,
+        isLegacy: Bool = false
+    ) {
+        self.id = id
+        self.configuration = configuration
+        self.category = category
+        self.displayName = displayName
+        self.description = description
+        self.estimatedRAMUsage = estimatedRAMUsage
+        self.minimumChipRequired = minimumChipRequired
+        self.parameterCount = parameterCount
+        self.quantization = quantization
+        self.isLegacy = isLegacy
+    }
+
     var fullName: String {
         configuration.name
     }
-    
+
     var shortName: String {
         displayName
     }
@@ -91,12 +116,53 @@ struct AIModel: Identifiable {
 // MARK: - AI Models Registry
 class AIModelsRegistry {
     static let shared = AIModelsRegistry()
-    
+
     private init() {}
-    
+
     // MARK: - Model Definitions
     private let models: [AIModel] = [
-        // General Purpose Models
+        // ============================================
+        // GENERAL PURPOSE MODELS (Updated 2025)
+        // ============================================
+
+        // --- Qwen3 Series (NEW - Recommended) ---
+        AIModel(
+            id: "qwen3_0_6B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen3-0.6B-4bit"),
+            category: .general,
+            displayName: "Qwen3 0.6B",
+            description: "Ultra-lightweight multilingual model with thinking capabilities",
+            estimatedRAMUsage: 400,
+            minimumChipRequired: .a13,
+            parameterCount: "0.6B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "qwen3_1_7B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen3-1.7B-4bit"),
+            category: .general,
+            displayName: "Qwen3 1.7B",
+            description: "Balanced multilingual model with advanced reasoning",
+            estimatedRAMUsage: 1200,
+            minimumChipRequired: .a13,
+            parameterCount: "1.7B",
+            quantization: "4-bit"
+        ),
+
+        // --- Phi-4 (NEW - Replaces Phi 3.5) ---
+        AIModel(
+            id: "phi4_mini",
+            configuration: ModelConfiguration(id: "mlx-community/Phi-4-mini-instruct-4bit"),
+            category: .general,
+            displayName: "Phi-4 Mini",
+            description: "Microsoft's powerful compact model, GPT-4 class performance",
+            estimatedRAMUsage: 2200,
+            minimumChipRequired: .a15,
+            parameterCount: "3.8B",
+            quantization: "4-bit"
+        ),
+
+        // --- Llama 3.2 (Maintained - Stable) ---
         AIModel(
             id: "llama3_2_1B",
             configuration: ModelConfiguration(id: "mlx-community/Llama-3.2-1B-Instruct-4bit"),
@@ -108,142 +174,155 @@ class AIModelsRegistry {
             parameterCount: "1B",
             quantization: "4-bit"
         ),
-        AIModel(
-            id: "llama3_2_3B",
-            configuration: ModelConfiguration(id: "mlx-community/Llama-3.2-3B-Instruct-4bit"),
-            category: .general,
-            displayName: "Llama 3.2 3B",
-            description: "Larger Llama model with enhanced capabilities",
-            estimatedRAMUsage: 2400,
-            minimumChipRequired: .a15,
-            parameterCount: "3B",
-            quantization: "4-bit"
-        ),
+
+        // --- Legacy Models (Lower Priority) ---
         AIModel(
             id: "qwen2_5_0_5B",
             configuration: ModelConfiguration(id: "mlx-community/Qwen2.5-0.5B-Instruct-4bit"),
             category: .general,
             displayName: "Qwen 2.5 0.5B",
-            description: "Ultra-lightweight multilingual model",
+            description: "Ultra-lightweight multilingual model (Legacy)",
             estimatedRAMUsage: 400,
             minimumChipRequired: .a13,
             parameterCount: "0.5B",
-            quantization: "4-bit"
+            quantization: "4-bit",
+            isLegacy: true
         ),
         AIModel(
             id: "qwen2_5_1_5B",
             configuration: ModelConfiguration(id: "mlx-community/Qwen2.5-1.5B-Instruct-4bit"),
             category: .general,
             displayName: "Qwen 2.5 1.5B",
-            description: "Balanced multilingual model from Alibaba",
+            description: "Balanced multilingual model from Alibaba (Legacy)",
             estimatedRAMUsage: 1200,
             minimumChipRequired: .a13,
             parameterCount: "1.5B",
-            quantization: "4-bit"
-        ),
-        AIModel(
-            id: "qwen2_5_3B",
-            configuration: ModelConfiguration(id: "mlx-community/Qwen2.5-3B-Instruct-4bit"),
-            category: .general,
-            displayName: "Qwen 2.5 3B",
-            description: "Advanced multilingual capabilities",
-            estimatedRAMUsage: 2400,
-            minimumChipRequired: .a15,
-            parameterCount: "3B",
-            quantization: "4-bit"
+            quantization: "4-bit",
+            isLegacy: true
         ),
         AIModel(
             id: "gemma2_2B",
             configuration: ModelConfiguration(id: "mlx-community/gemma-2-2b-it-4bit"),
             category: .general,
             displayName: "Gemma 2 2B",
-            description: "Google's lightweight model with strong performance",
+            description: "Google's lightweight model (Legacy)",
             estimatedRAMUsage: 1600,
             minimumChipRequired: .a14,
             parameterCount: "2B",
+            quantization: "4-bit",
+            isLegacy: true
+        ),
+
+        // ============================================
+        // CODE MODELS (NEW Category)
+        // ============================================
+        AIModel(
+            id: "qwen2_5_coder_0_5B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen2.5-Coder-0.5B-Instruct-4bit"),
+            category: .code,
+            displayName: "Qwen Coder 0.5B",
+            description: "Ultra-lightweight code assistant",
+            estimatedRAMUsage: 400,
+            minimumChipRequired: .a13,
+            parameterCount: "0.5B",
             quantization: "4-bit"
         ),
         AIModel(
-            id: "phi3_5Mini",
-            configuration: ModelConfiguration(id: "mlx-community/Phi-3.5-mini-instruct-4bit"),
-            category: .general,
-            displayName: "Phi 3.5 Mini",
-            description: "Microsoft's compact yet capable model",
-            estimatedRAMUsage: 2800,
-            minimumChipRequired: .a15,
-            parameterCount: "3.8B",
+            id: "qwen2_5_coder_1_5B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen2.5-Coder-1.5B-Instruct-4bit"),
+            category: .code,
+            displayName: "Qwen Coder 1.5B",
+            description: "Balanced code assistant for most programming tasks",
+            estimatedRAMUsage: 1000,
+            minimumChipRequired: .a13,
+            parameterCount: "1.5B",
             quantization: "4-bit"
         ),
-        
-        // Code Models
-        // Note: CodeLlama and StableCode were removed due to MLX compatibility issues:
-        // - CodeLlama-7b: config.json not found error
-        // - StableCode-3b: "stablelm" model type not supported by MLX
-        // Currently no code-specific models available. Users can use general models for code tasks.
-        
-        // Reasoning Models
+        AIModel(
+            id: "qwen2_5_coder_3B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen2.5-Coder-3B-Instruct-4bit"),
+            category: .code,
+            displayName: "Qwen Coder 3B",
+            description: "Advanced code assistant with strong capabilities",
+            estimatedRAMUsage: 2000,
+            minimumChipRequired: .a15,
+            parameterCount: "3B",
+            quantization: "4-bit"
+        ),
+
+        // ============================================
+        // REASONING MODELS
+        // ============================================
         AIModel(
             id: "deepseekR1_1_5B_4bit",
             configuration: ModelConfiguration(id: "mlx-community/DeepSeek-R1-Distill-Qwen-1.5B-4bit"),
             category: .reasoning,
-            displayName: "DeepSeek R1 1.5B (4-bit)",
-            description: "Advanced reasoning with efficient quantization",
+            displayName: "DeepSeek R1 1.5B",
+            description: "Advanced reasoning with chain-of-thought capabilities",
             estimatedRAMUsage: 1200,
             minimumChipRequired: .a14,
             parameterCount: "1.5B",
             quantization: "4-bit"
-        ),
-        AIModel(
-            id: "deepseekR1_1_5B_8bit",
-            configuration: ModelConfiguration(id: "mlx-community/DeepSeek-R1-Distill-Qwen-1.5B-8bit"),
-            category: .reasoning,
-            displayName: "DeepSeek R1 1.5B (8-bit)",
-            description: "Higher precision reasoning model",
-            estimatedRAMUsage: 2400,
-            minimumChipRequired: .a15,
-            parameterCount: "1.5B",
-            quantization: "8-bit"
         )
     ]
-    
+
     // MARK: - Public API
     var allModels: [AIModel] {
         models
     }
-    
+
+    /// Returns models sorted by priority (non-legacy first, then by RAM usage)
+    var sortedModels: [AIModel] {
+        models.sorted { m1, m2 in
+            if m1.isLegacy != m2.isLegacy {
+                return !m1.isLegacy // Non-legacy first
+            }
+            return m1.estimatedRAMUsage < m2.estimatedRAMUsage
+        }
+    }
+
     var categorizedModels: [ModelCategory: [AIModel]] {
-        Dictionary(grouping: models, by: { $0.category })
+        let grouped = Dictionary(grouping: models, by: { $0.category })
+        return grouped.mapValues { models in
+            models.sorted { m1, m2 in
+                if m1.isLegacy != m2.isLegacy {
+                    return !m1.isLegacy
+                }
+                return m1.estimatedRAMUsage < m2.estimatedRAMUsage
+            }
+        }
     }
-    
+
     var defaultModel: AIModel {
-        models.first { $0.id == "llama3_2_1B" } ?? models[0]
+        // Default to Qwen3 0.6B as it's small and capable
+        models.first { $0.id == "qwen3_0_6B" } ?? models[0]
     }
-    
+
     func modelByConfiguration(_ configuration: ModelConfiguration) -> AIModel? {
         models.first { $0.configuration.name == configuration.name }
     }
-    
+
     func modelByName(_ name: String) -> AIModel? {
         models.first { $0.configuration.name == name }
     }
-    
+
     func modelById(_ id: String) -> AIModel? {
         models.first { $0.id == id }
     }
-    
+
     // MARK: - Compatibility
     func compatibilityForModel(_ model: AIModel) -> ModelCompatibility {
         let chipFamily = DeviceUtils.chipFamily
         let deviceRAM = DeviceUtils.estimatedRAM
-        
+
         // Check if chip meets minimum requirement
         guard chipFamily.rawValue >= model.minimumChipRequired.rawValue else {
             return .notRecommended
         }
-        
+
         // Check RAM requirements with safety margin (2x model size + 2GB for system)
         let requiredRAM = (model.estimatedRAMUsage * 2) + 2000
-        
+
         if deviceRAM >= requiredRAM + 1000 { // 1GB extra margin
             return .recommended
         } else if deviceRAM >= requiredRAM {
@@ -254,27 +333,45 @@ class AIModelsRegistry {
             return .notRecommended
         }
     }
-    
+
     func recommendedModelsForDevice() -> [AIModel] {
         models.filter { model in
             let compatibility = compatibilityForModel(model)
             return compatibility == .recommended || compatibility == .compatible
         }.sorted { model1, model2 in
-            // Sort by compatibility first, then by RAM usage
+            // Sort by: non-legacy first, then compatibility, then RAM usage
+            if model1.isLegacy != model2.isLegacy {
+                return !model1.isLegacy
+            }
+
             let comp1 = compatibilityForModel(model1)
             let comp2 = compatibilityForModel(model2)
-            
+
             if comp1 == comp2 {
                 return model1.estimatedRAMUsage < model2.estimatedRAMUsage
             }
-            
-            // Recommended > Compatible
+
             return comp1 == .recommended && comp2 != .recommended
         }
     }
-    
+
     func modelsForCategory(_ category: ModelCategory) -> [AIModel] {
-        models.filter { $0.category == category }
+        models.filter { $0.category == category }.sorted { m1, m2 in
+            if m1.isLegacy != m2.isLegacy {
+                return !m1.isLegacy
+            }
+            return m1.estimatedRAMUsage < m2.estimatedRAMUsage
+        }
+    }
+
+    /// Returns only non-legacy models
+    var currentModels: [AIModel] {
+        models.filter { !$0.isLegacy }
+    }
+
+    /// Returns only legacy models
+    var legacyModels: [AIModel] {
+        models.filter { $0.isLegacy }
     }
 }
 
@@ -283,11 +380,11 @@ extension ModelConfiguration {
     static var availableModels: [ModelConfiguration] {
         AIModelsRegistry.shared.allModels.map { $0.configuration }
     }
-    
+
     static var defaultModel: ModelConfiguration {
         AIModelsRegistry.shared.defaultModel.configuration
     }
-    
+
     static func getModelByName(_ name: String) -> ModelConfiguration? {
         AIModelsRegistry.shared.modelByName(name)?.configuration
     }

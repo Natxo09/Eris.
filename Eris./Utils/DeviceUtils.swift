@@ -400,10 +400,6 @@ struct DeviceUtils {
         return UIDevice.current.systemVersion
     }
     
-    static var isIOS26Beta: Bool {
-        let version = iOSVersion
-        return version.hasPrefix("26.")
-    }
     
     private static func getCPUType() -> String {
         var size = 0

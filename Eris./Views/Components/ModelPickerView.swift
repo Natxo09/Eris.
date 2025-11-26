@@ -86,6 +86,17 @@ struct ModelPickerRow: View {
                             .padding(.vertical, 2)
                             .background(Color.secondary.opacity(0.2))
                             .cornerRadius(4)
+
+                        if aiModel.isLegacy {
+                            Text("LEGACY")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange)
+                                .cornerRadius(4)
+                        }
                     }
                     
                     Text(aiModel.description)

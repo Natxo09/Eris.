@@ -306,6 +306,17 @@ struct ModelCard: View {
                                     .background(Color.blue)
                                     .cornerRadius(4)
                             }
+
+                            if aiModel.isLegacy {
+                                Text("LEGACY")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(Color.orange)
+                                    .cornerRadius(4)
+                            }
                         }
                         
                         Text(aiModel.description)

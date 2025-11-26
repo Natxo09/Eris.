@@ -199,7 +199,7 @@ struct ModelSelectionCard: View {
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 2)
-                                    .background(Color.gray.opacity(0.7))
+                                    .background(Color.purple.opacity(0.7))
                                     .cornerRadius(4)
                             } else if aiModel.category == .code {
                                 Text("CODE")
@@ -208,7 +208,19 @@ struct ModelSelectionCard: View {
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 2)
-                                    .background(Color.gray.opacity(0.7))
+                                    .background(Color.blue.opacity(0.7))
+                                    .cornerRadius(4)
+                            }
+
+                            // Legacy badge
+                            if aiModel.isLegacy {
+                                Text("LEGACY")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(Color.orange.opacity(0.7))
                                     .cornerRadius(4)
                             }
                             
