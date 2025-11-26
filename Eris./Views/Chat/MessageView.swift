@@ -10,7 +10,12 @@ import SwiftUI
 struct MessageView: View {
     let content: String
     let isUser: Bool
-    
+
+    // Parse thinking content from message
+    private var parsedContent: (thinking: String?, response: String) {
+        parseThinkingContent(content)
+    }
+
     var body: some View {
         if isUser {
             // User messages with bubble
@@ -32,7 +37,101 @@ struct MessageView: View {
             }
         } else {
             // Assistant messages without bubble, full width
-            MarkdownMessageView(content: content)
+            VStack(alignment: .leading, spacing: 12) {
+                // Show thinking block if present
+                if let thinking = parsedContent.thinking {
+                    ThinkingView(content: thinking)
+                }
+
+                // Show response
+                if !parsedContent.response.isEmpty {
+                    MarkdownMessageView(content: parsedContent.response)
+                }
+            }
+        }
+    }
+
+    // Extract <think>...</think> content from message
+    private func parseThinkingContent(_ text: String) -> (thinking: String?, response: String) {
+        // Pattern to match <think>...</think> tags
+        let pattern = #"<think>([\s\S]*?)</think>"#
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let thinkingRange = Range(match.range(at: 1), in: text) else {
+            return (nil, text)
+        }
+
+        let thinking = String(text[thinkingRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Remove the entire <think>...</think> block from the response
+        let response = regex.stringByReplacingMatches(
+            in: text,
+            range: NSRange(text.startIndex..., in: text),
+            withTemplate: ""
+        ).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return (thinking.isEmpty ? nil : thinking, response)
+    }
+}
+
+// MARK: - Thinking View (Collapsible)
+struct ThinkingView: View {
+    let content: String
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header button
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isExpanded.toggle()
+                }
+                HapticManager.shared.selection()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Color(UIColor.secondaryLabel))
+
+                    Text("Thinking")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(Color(UIColor.secondaryLabel))
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color(UIColor.tertiaryLabel))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                )
+            }
+            .buttonStyle(.plain)
+
+            // Expandable content
+            if isExpanded {
+                Text(content)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(UIColor.tertiarySystemBackground))
+                    )
+                    .padding(.top, 8)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .top)),
+                        removal: .opacity
+                    ))
+            }
         }
     }
 }
