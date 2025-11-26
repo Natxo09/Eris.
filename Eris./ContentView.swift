@@ -276,7 +276,36 @@ struct ContentView: View {
 
 struct ThreadRow: View {
     let thread: Thread
-    
+
+    // Clean message content for preview (remove think tags and get meaningful text)
+    private var previewText: String? {
+        guard let content = thread.lastMessage?.content else { return nil }
+
+        // Remove <think>...</think> blocks (closed tags)
+        var cleaned = content
+        if let regex = try? NSRegularExpression(pattern: #"<think>[\s\S]*?</think>"#, options: []) {
+            cleaned = regex.stringByReplacingMatches(
+                in: cleaned,
+                range: NSRange(cleaned.startIndex..., in: cleaned),
+                withTemplate: ""
+            )
+        }
+
+        // Remove open <think> tag and everything after (streaming)
+        if let thinkRange = cleaned.range(of: "<think>") {
+            cleaned = String(cleaned[..<thinkRange.lowerBound])
+        }
+
+        // Remove </think> if it appears alone
+        cleaned = cleaned.replacingOccurrences(of: "</think>", with: "")
+
+        // Clean up whitespace
+        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // If empty after cleaning, return nil
+        return cleaned.isEmpty ? nil : cleaned
+    }
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 6) {
@@ -285,7 +314,7 @@ struct ThreadRow: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
-                    
+
                     if thread.isPinned {
                         Image(systemName: "pin.fill")
                             .font(.system(size: 12))
@@ -297,25 +326,26 @@ struct ThreadRow: View {
                             ))
                     }
                 }
-                
-                if let lastMessage = thread.lastMessage {
-                    Text(lastMessage.content)
+
+                if let preview = previewText {
+                    Text(preview)
                         .font(.system(size: 14))
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
-                
+
                 Text(timeAgoString(from: thread.updatedAt))
                     .font(.system(size: 12))
                     .foregroundStyle(.tertiary)
             }
-            
+
             Spacer()
         }
         .padding(16)
         .frame(maxWidth: .infinity)
+        .contentShape(Rectangle()) // Makes entire area tappable
     }
-    
+
     private func timeAgoString(from date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
