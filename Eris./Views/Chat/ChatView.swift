@@ -193,9 +193,9 @@ struct ChatView: View {
         .navigationTitle(thread.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if let activeModel = modelManager.activeModel {
-                    if #available(iOS 26.0, *) {
+            if #available(iOS 26.0, *) {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if let activeModel = modelManager.activeModel {
                         HStack(spacing: 6) {
                             Image(systemName: "cpu")
                                 .font(.system(size: 14, weight: .medium))
@@ -212,7 +212,12 @@ struct ChatView: View {
                             HapticManager.shared.selection()
                             showModelPicker.toggle()
                         }
-                    } else {
+                    }
+                }
+                .sharedBackgroundVisibility(.hidden)
+            } else {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if let activeModel = modelManager.activeModel {
                         Button(action: {
                             HapticManager.shared.selection()
                             showModelPicker.toggle()
