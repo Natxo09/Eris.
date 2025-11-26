@@ -14,14 +14,22 @@ struct MessageView: View {
     var body: some View {
         if isUser {
             // User messages with bubble
-            Text(content)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Color.gray)
-                )
-                .foregroundStyle(.white)
+            if #available(iOS 26.0, *) {
+                Text(content)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .foregroundStyle(Color(UIColor.label))
+                    .glassEffect(.regular, in: .capsule)
+            } else {
+                Text(content)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(Color.gray)
+                    )
+                    .foregroundStyle(.white)
+            }
         } else {
             // Assistant messages without bubble, full width
             MarkdownMessageView(content: content)

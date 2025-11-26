@@ -57,11 +57,19 @@ struct ContentView: View {
                         Spacer()
                         
                         NavigationLink(destination: SettingsView()) {
-                            Image(systemName: "gearshape.fill")
-                                .font(.title2)
-                                .foregroundStyle(Color(UIColor.label))
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
+                            if #available(iOS 26.0, *) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(Color(UIColor.label))
+                                    .frame(width: 44, height: 44)
+                                    .glassEffect(.regular.interactive(), in: .circle)
+                            } else {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(Color(UIColor.label))
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
                         }
                         .simultaneousGesture(TapGesture().onEnded { _ in
                             HapticManager.shared.selection()
@@ -119,11 +127,16 @@ struct ContentView: View {
                             VStack(spacing: 10) {
                                 ForEach(sortedThreads) { thread in
                                     NavigationLink(destination: ChatView(thread: thread)) {
-                                        ThreadRow(thread: thread)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 16)
-                                                    .fill(Color(UIColor.secondarySystemBackground))
-                                            )
+                                        if #available(iOS 26.0, *) {
+                                            ThreadRow(thread: thread)
+                                                .glassEffect(.regular, in: .rect(cornerRadius: 16))
+                                        } else {
+                                            ThreadRow(thread: thread)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 16)
+                                                        .fill(Color(UIColor.secondarySystemBackground))
+                                                )
+                                        }
                                     }
                                     .buttonStyle(ThreadButtonStyle())
                                     .contextMenu {
@@ -174,14 +187,23 @@ struct ContentView: View {
                                 HapticManager.shared.buttonTap()
                                 createNewThreadAndNavigate()
                             }) {
-                                Image(systemName: "plus")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(Color(UIColor.systemBackground))
-                                    .frame(width: 56, height: 56)
-                                    .background(Color(UIColor.label))
-                                    .clipShape(Circle())
-                                    .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
+                                if #available(iOS 26.0, *) {
+                                    Image(systemName: "plus")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(Color(UIColor.label))
+                                        .frame(width: 56, height: 56)
+                                        .glassEffect(.regular.interactive(), in: .circle)
+                                } else {
+                                    Image(systemName: "plus")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(Color(UIColor.systemBackground))
+                                        .frame(width: 56, height: 56)
+                                        .background(Color(UIColor.label))
+                                        .clipShape(Circle())
+                                        .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
+                                }
                             }
                             .padding(.trailing, 20)
                             .padding(.bottom, 20)

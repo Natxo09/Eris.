@@ -163,17 +163,24 @@ struct ChatView: View {
                 )
                 .focused($isInputFocused)
             }
-            .background(
-                Color(UIColor.secondarySystemBackground)
-                    .clipShape(
-                        .rect(
-                            topLeadingRadius: 20,
-                            topTrailingRadius: 20
+            .background {
+                if #available(iOS 26.0, *) {
+                    UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20)
+                        .fill(.clear)
+                        .glassEffect(.regular, in: UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20))
+                        .ignoresSafeArea(edges: .bottom)
+                } else {
+                    Color(UIColor.secondarySystemBackground)
+                        .clipShape(
+                            .rect(
+                                topLeadingRadius: 20,
+                                topTrailingRadius: 20
+                            )
                         )
-                    )
-                    .ignoresSafeArea(edges: .bottom)
-                    .shadow(color: Color.black.opacity(0.05), radius: 5, y: -2)
-            )
+                        .ignoresSafeArea(edges: .bottom)
+                        .shadow(color: Color.black.opacity(0.05), radius: 5, y: -2)
+                }
+            }
         }
         .navigationTitle(thread.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -562,11 +569,19 @@ struct ChatInputView: View {
                     HapticManager.shared.impact(.light)
                     onSend()
                 }) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 32, height: 32)
-                        .foregroundStyle(text.isEmpty ? Color.gray : Color(UIColor.label))
+                    if #available(iOS 26.0, *) {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .bold))
+                            .frame(width: 32, height: 32)
+                            .foregroundStyle(text.isEmpty ? Color.gray : Color(UIColor.label))
+                            .glassEffect(.regular.interactive(), in: .circle)
+                    } else {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 32, height: 32)
+                            .foregroundStyle(text.isEmpty ? Color.gray : Color(UIColor.label))
+                    }
                 }
                 .disabled(text.isEmpty)
             }
