@@ -9,6 +9,9 @@ import Foundation
 import MLX
 import MLXLLM
 import MLXLMCommon
+import MLXHuggingFace
+import HuggingFace
+import Tokenizers
 import SwiftUI
 
 // Custom error types for better error handling
@@ -131,7 +134,7 @@ class ModelManager: ObservableObject {
         // Use lower cache limit for better compatibility with cellular connections
         // Similar to Fullmoon's approach (20MB)
         let cacheLimit = 20 * 1024 * 1024 // 20MB for all devices during download
-        MLX.GPU.set(cacheLimit: cacheLimit)
+        MLX.Memory.cacheLimit = cacheLimit
         print("Download cache limit set to: \(cacheLimit / 1024 / 1024)MB")
         
         var lastError: Error?
@@ -150,6 +153,8 @@ class ModelManager: ObservableObject {
                 // Download the model
                 print("Download attempt \(attempt + 1) of \(maxRetries)")
                 _ = try await LLMModelFactory.shared.loadContainer(
+                    from: #hubDownloader(),
+                    using: #huggingFaceTokenizerLoader(),
                     configuration: model,
                     progressHandler: { progress in
                         print("Download progress: \(progress.fractionCompleted)")
@@ -271,21 +276,36 @@ class ModelManager: ObservableObject {
     
     private func deleteModelFiles(for model: ModelConfiguration) {
         let fileManager = FileManager.default
-        
-        // Try to find and delete model files in Documents/huggingface
+
+        // mlx-swift-lm 3.x downloads through swift-huggingface's HubClient, which caches under
+        // <app>/Library/Caches/huggingface/hub/models--<namespace>--<name> on iOS. Ask the
+        // library's own cache for the directory so the path always matches where the weights
+        // were actually written (and keeps working if the convention changes upstream).
+        if let repo = Repo.ID(rawValue: model.name) {
+            let cache = HubCache.default
+            let directories = [
+                cache.repoDirectory(repo: repo, kind: .model),
+                cache.metadataDirectory(repo: repo, kind: .model)
+            ]
+            for directory in directories where fileManager.fileExists(atPath: directory.path) {
+                do {
+                    try fileManager.removeItem(at: directory)
+                    print("Deleted model files at: \(directory.path)")
+                } catch {
+                    print("Error deleting model files at \(directory.path): \(error)")
+                }
+            }
+        }
+
+        // Legacy cleanup: models downloaded by the old mlx-swift-examples HubApi lived in
+        // Documents/huggingface/models/<name>. Remove those too for users upgrading from 2.x.
         if let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let modelPath = documentsPath
+            let legacyPath = documentsPath
                 .appendingPathComponent("huggingface")
                 .appendingPathComponent("models")
                 .appendingPathComponent(model.name)
-            
-            do {
-                if fileManager.fileExists(atPath: modelPath.path) {
-                    try fileManager.removeItem(at: modelPath)
-                    print("Deleted model files at: \(modelPath)")
-                }
-            } catch {
-                print("Error deleting model files: \(error)")
+            if fileManager.fileExists(atPath: legacyPath.path) {
+                try? fileManager.removeItem(at: legacyPath)
             }
         }
     }

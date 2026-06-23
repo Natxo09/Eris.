@@ -8,7 +8,10 @@
 import MLX
 import MLXLLM
 import MLXLMCommon
+import MLXHuggingFace
 import MLXRandom
+import HuggingFace
+import Tokenizers
 import SwiftUI
 
 // Helper class to manage cancellation state across actor boundaries
@@ -45,8 +48,7 @@ class LLMEvaluator: ObservableObject {
     @Published var tokensGenerated = 0
     
     private var modelConfiguration: ModelConfiguration?
-    private let generateParameters = GenerateParameters(temperature: 0.7)
-    private let maxTokens = 2048
+    private let generateParameters = GenerateParameters(maxTokens: 2048, temperature: 0.7)
     private let cancellationToken = CancellationToken()
     
     enum LoadState {
@@ -70,7 +72,7 @@ class LLMEvaluator: ObservableObject {
             // Use conservative cache limit during model loading
             // Similar to Fullmoon's approach for better stability
             let cacheLimit = 20 * 1024 * 1024 // 20MB during initial load
-            MLX.GPU.set(cacheLimit: cacheLimit)
+            MLX.Memory.cacheLimit = cacheLimit
             print("GPU cache limit set to: \(cacheLimit / 1024 / 1024)MB for model loading")
             
             do {
@@ -85,10 +87,12 @@ class LLMEvaluator: ObservableObject {
                     try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                     
                     // Set minimal cache
-                    MLX.GPU.set(cacheLimit: 16 * 1024 * 1024) // 16MB minimum
+                    MLX.Memory.cacheLimit = 16 * 1024 * 1024 // 16MB minimum
                 }
                 
                 let modelContainer = try await LLMModelFactory.shared.loadContainer(
+                    from: #hubDownloader(),
+                    using: #huggingFaceTokenizerLoader(),
                     configuration: modelConfiguration
                 ) { progress in
                     Task { @MainActor in
@@ -103,7 +107,7 @@ class LLMEvaluator: ObservableObject {
                 
                 // After successful load, adjust cache based on device
                 let runtimeCacheLimit = getCacheLimitForDevice()
-                MLX.GPU.set(cacheLimit: runtimeCacheLimit)
+                MLX.Memory.cacheLimit = runtimeCacheLimit
                 print("Runtime cache limit adjusted to: \(runtimeCacheLimit / 1024 / 1024)MB")
                 
                 return modelContainer
@@ -143,7 +147,6 @@ class LLMEvaluator: ObservableObject {
     
     private func getCacheLimitForDevice() -> Int {
         // Get device info
-        let deviceModel = DeviceUtils.deviceModel
         let chipFamily = DeviceUtils.chipFamily
         
         // Base cache sizes in MB
@@ -192,55 +195,43 @@ class LLMEvaluator: ObservableObject {
             let modelContainer = try await load()
             isLoadingModel = false
             
-            // Prepare conversation history
-            var messages: [[String: String]] = []
-            
-            // Add system prompt
-            messages.append([
-                "role": "system",
-                "content": systemPrompt
-            ])
-            
-            // Add conversation history
+            // Build the structured chat history (system prompt + conversation)
+            var chat: [Chat.Message] = [.system(systemPrompt)]
             for message in thread.sortedMessages {
-                messages.append([
-                    "role": message.role.rawValue,
-                    "content": message.content
-                ])
-            }
-            
-            // Generate random seed
-            MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
-            
-            let cancellationToken = self.cancellationToken
-            
-            let result = try await modelContainer.perform { [weak self] context in
-                let input = try await context.processor.prepare(input: .init(messages: messages))
-                return try MLXLMCommon.generate(
-                    input: input,
-                    parameters: generateParameters,
-                    context: context
-                ) { tokens in
-                    guard let self = self else { return .stop }
-                    
-                    // Update output periodically
-                    if tokens.count % 4 == 0 {
-                        let text = context.tokenizer.decode(tokens: tokens)
-                        Task { @MainActor in
-                            self.output = text
-                            self.tokensGenerated = tokens.count
-                        }
-                    }
-                    
-                    // Check if we should stop generation
-                    if cancellationToken.isCancelled {
-                        return .stop
-                    }
-                    return tokens.count >= maxTokens ? .stop : .more
+                switch message.role {
+                case .user:
+                    chat.append(.user(message.content))
+                case .assistant:
+                    chat.append(.assistant(message.content))
+                case .system:
+                    chat.append(.system(message.content))
                 }
             }
-            
-            output = result.output
+
+            // Generate random seed
+            MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
+
+            // Prepare input and stream the generation (mlx-swift-lm 3.x AsyncStream API)
+            let lmInput = try await modelContainer.prepare(input: UserInput(chat: chat))
+            let stream = try await modelContainer.generate(
+                input: lmInput,
+                parameters: generateParameters
+            )
+
+            var generatedText = ""
+            for await generation in stream {
+                if cancellationToken.isCancelled { break }
+                switch generation {
+                case .chunk(let text):
+                    generatedText += text
+                    output = generatedText
+                    tokensGenerated += 1
+                case .info, .toolCall:
+                    break
+                }
+            }
+
+            output = generatedText
             
         } catch {
             // Provide more helpful error messages
