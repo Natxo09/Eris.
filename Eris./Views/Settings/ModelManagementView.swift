@@ -10,7 +10,6 @@ import SwiftUI
 struct ModelManagementView: View {
     @StateObject private var modelManager = ModelManager.shared
     @StateObject private var networkMonitor = NetworkMonitor.shared
-    @State private var selectedModel: AIModel?
     @State private var showCompatibilityWarning = false
     @State private var modelToDownload: AIModel?
     @State private var showCellularWarning = false
@@ -139,7 +138,7 @@ struct ModelManagementView: View {
                                         deleteModel(aiModel)
                                     }
                                 )
-                                .disabled(DeviceUtils.isSimulator || !DeviceUtils.canRunMLX)
+                                .disabled(!aiModel.isSystemManaged && (DeviceUtils.isSimulator || !DeviceUtils.canRunMLX))
                                 .padding(.horizontal, 20)
                             }
                         }
@@ -151,9 +150,6 @@ struct ModelManagementView: View {
         .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Model Management")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            selectedModel = modelManager.activeAIModel
-        }
         .alert("Compatibility Warning", isPresented: $showCompatibilityWarning) {
             Button("Download Anyway", role: .destructive) {
                 if let aiModel = modelToDownload {

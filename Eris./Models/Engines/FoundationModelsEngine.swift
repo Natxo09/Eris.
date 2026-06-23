@@ -66,6 +66,9 @@ final class FoundationModelsEngine: ChatEngine {
         let promptText = messages.last?.content ?? ""
         let history = Array(messages.dropLast())
 
+        // Nothing to send (no user turn) — avoid a pointless model call.
+        guard !promptText.isEmpty else { return "" }
+
         let session = LanguageModelSession(
             transcript: Self.buildTranscript(systemPrompt: systemPrompt, history: history)
         )

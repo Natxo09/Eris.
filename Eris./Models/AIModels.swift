@@ -145,14 +145,6 @@ struct AIModel: Identifiable {
         if case .appleFoundation = source { return true }
         return false
     }
-
-    var fullName: String {
-        mlxConfiguration?.name ?? displayName
-    }
-
-    var shortName: String {
-        displayName
-    }
 }
 
 // MARK: - AI Models Registry
@@ -452,22 +444,6 @@ class AIModelsRegistry {
     /// Returns only legacy models
     var legacyModels: [AIModel] {
         allModels.filter { $0.isLegacy }
-    }
-}
-
-// MARK: - Extensions for backward compatibility
-extension ModelConfiguration {
-    static var availableModels: [ModelConfiguration] {
-        AIModelsRegistry.shared.allModels.compactMap { $0.mlxConfiguration }
-    }
-
-    static var defaultModel: ModelConfiguration {
-        let defaultAIModel = AIModelsRegistry.shared.defaultModel
-        return defaultAIModel.mlxConfiguration ?? ModelConfiguration(id: defaultAIModel.id)
-    }
-
-    static func getModelByName(_ name: String) -> ModelConfiguration? {
-        AIModelsRegistry.shared.modelByName(name)?.mlxConfiguration
     }
 }
 
