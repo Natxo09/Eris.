@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftData
-import MLXLMCommon
 
 enum IntentError: LocalizedError {
     case modelNotDownloaded(String)
@@ -33,17 +32,22 @@ struct IntentUtils {
     static let sharedRunner = ChatEngineRunner()
     
     /// Selects the appropriate model based on user input or defaults to active model
-    static func selectModel(requestedName: String?) -> Result<MLXLMCommon.ModelConfiguration, IntentError> {
+    static func selectModel(requestedName: String?) -> Result<AIModel, IntentError> {
         let modelManager = ModelManager.shared
-        
+
         if let requestedModel = requestedName, !requestedModel.isEmpty {
-            // Try to find the requested model
-            if let model = MLXLMCommon.ModelConfiguration.availableModels.first(where: { 
-                $0.name.lowercased().contains(requestedModel.lowercased()) ||
-                $0.name.replacingOccurrences(of: "mlx-community/", with: "").lowercased().contains(requestedModel.lowercased())
+            let needle = requestedModel.lowercased()
+            // Match by display name (e.g. "Apple", "Qwen") or MLX repo name.
+            if let model = AIModelsRegistry.shared.allModels.first(where: { model in
+                if model.displayName.lowercased().contains(needle) { return true }
+                if let name = model.mlxConfiguration?.name.lowercased() {
+                    return name.contains(needle)
+                        || name.replacingOccurrences(of: "mlx-community/", with: "").contains(needle)
+                }
+                return false
             }) {
-                // Check if model is downloaded
-                if modelManager.isModelDownloaded(model) {
+                // Check if model is ready to use (downloaded, or always-on for system models)
+                if modelManager.isReady(model) {
                     return .success(model)
                 } else {
                     return .failure(.modelNotDownloaded(requestedModel))
@@ -53,7 +57,7 @@ struct IntentUtils {
             }
         } else {
             // Use the active model
-            if let activeModel = modelManager.activeModel {
+            if let activeModel = modelManager.activeAIModel {
                 return .success(activeModel)
             } else {
                 return .failure(.noModelSelected)
@@ -80,36 +84,38 @@ struct IntentUtils {
     /// Generates a response using the specified model
     static func generateResponse(
         thread: Thread,
-        model: MLXLMCommon.ModelConfiguration,
+        model: AIModel,
         systemPrompt: String
     ) async -> String {
         let modelManager = ModelManager.shared
-        
+
         // Temporarily set the active model if using a different one
-        let originalModel = modelManager.activeModel
-        if model != originalModel {
-            modelManager.setActiveModel(model)
+        let originalModel = modelManager.activeAIModel
+        if originalModel?.id != model.id {
+            modelManager.setActive(model)
         }
-        
+
         // Use the shared chat engine runner for better performance
         let response = await sharedRunner.generate(
             thread: thread,
             systemPrompt: systemPrompt
         )
-        
+
         // Restore original model if changed
-        if model != originalModel, let original = originalModel {
-            modelManager.setActiveModel(original)
+        if originalModel?.id != model.id, let original = originalModel {
+            modelManager.setActive(original)
         }
-        
+
         return response
     }
-    
-    /// Returns a list of downloaded model names for shortcuts
+
+    /// Returns a list of ready-to-use model names for shortcuts
     static func getAvailableModelNames() -> [String] {
         let modelManager = ModelManager.shared
-        return MLXLMCommon.ModelConfiguration.availableModels
-            .filter { modelManager.isModelDownloaded($0) }
-            .map { $0.name.replacingOccurrences(of: "mlx-community/", with: "") }
+        return AIModelsRegistry.shared.allModels
+            .filter { modelManager.isReady($0) }
+            .map { model in
+                model.mlxConfiguration?.name.replacingOccurrences(of: "mlx-community/", with: "") ?? model.displayName
+            }
     }
 }

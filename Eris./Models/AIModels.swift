@@ -139,12 +139,11 @@ struct AIModel: Identifiable {
         return nil
     }
 
-    var fullName: String {
-        mlxConfiguration?.name ?? displayName
-    }
-
-    var shortName: String {
-        displayName
+    /// `true` for models provisioned and managed by the OS (no download, no
+    /// RAM management) — currently only Apple Foundation Models.
+    var isSystemManaged: Bool {
+        if case .appleFoundation = source { return true }
+        return false
     }
 }
 
@@ -301,14 +300,38 @@ class AIModelsRegistry {
         )
     ]
 
+    // MARK: - System Models (DEV-598)
+
+    /// The Apple Foundation Models entry. Defined as a value always; its
+    /// visibility is gated on runtime availability via `systemModels`.
+    static let appleFoundationModel = AIModel(
+        id: "apple_foundation",
+        source: .appleFoundation,
+        category: .general,
+        displayName: "Apple Intelligence",
+        description: "Apple's built-in on-device model. No download required.",
+        estimatedRAMUsage: 0,
+        minimumChipRequired: .a17Pro,
+        parameterCount: "Built-in",
+        quantization: "System"
+    )
+
+    /// System-managed models that are currently available on this device.
+    private var systemModels: [AIModel] {
+        AppleIntelligenceAvailability.current.isUsable ? [Self.appleFoundationModel] : []
+    }
+
     // MARK: - Public API
+
+    /// All models offered on this device: the bundled MLX catalog plus any
+    /// currently available system-managed models (e.g. Apple Intelligence).
     var allModels: [AIModel] {
-        models
+        systemModels + models
     }
 
     /// Returns models sorted by priority (non-legacy first, then by RAM usage)
     var sortedModels: [AIModel] {
-        models.sorted { m1, m2 in
+        allModels.sorted { m1, m2 in
             if m1.isLegacy != m2.isLegacy {
                 return !m1.isLegacy // Non-legacy first
             }
@@ -317,7 +340,7 @@ class AIModelsRegistry {
     }
 
     var categorizedModels: [ModelCategory: [AIModel]] {
-        let grouped = Dictionary(grouping: models, by: { $0.category })
+        let grouped = Dictionary(grouping: allModels, by: { $0.category })
         return grouped.mapValues { models in
             models.sorted { m1, m2 in
                 if m1.isLegacy != m2.isLegacy {
@@ -342,11 +365,17 @@ class AIModelsRegistry {
     }
 
     func modelById(_ id: String) -> AIModel? {
-        models.first { $0.id == id }
+        allModels.first { $0.id == id }
     }
 
     // MARK: - Compatibility
     func compatibilityForModel(_ model: AIModel) -> ModelCompatibility {
+        // System-managed models (Apple Intelligence) only appear when the OS
+        // reports them available, so they are always a good fit by definition.
+        if model.isSystemManaged {
+            return .recommended
+        }
+
         let chipFamily = DeviceUtils.chipFamily
         let deviceRAM = DeviceUtils.estimatedRAM
 
@@ -378,7 +407,7 @@ class AIModelsRegistry {
     }
 
     func recommendedModelsForDevice() -> [AIModel] {
-        models.filter { model in
+        allModels.filter { model in
             let compatibility = compatibilityForModel(model)
             return compatibility == .recommended || compatibility == .compatible
         }.sorted { model1, model2 in
@@ -399,7 +428,7 @@ class AIModelsRegistry {
     }
 
     func modelsForCategory(_ category: ModelCategory) -> [AIModel] {
-        models.filter { $0.category == category }.sorted { m1, m2 in
+        allModels.filter { $0.category == category }.sorted { m1, m2 in
             if m1.isLegacy != m2.isLegacy {
                 return !m1.isLegacy
             }
@@ -409,28 +438,12 @@ class AIModelsRegistry {
 
     /// Returns only non-legacy models
     var currentModels: [AIModel] {
-        models.filter { !$0.isLegacy }
+        allModels.filter { !$0.isLegacy }
     }
 
     /// Returns only legacy models
     var legacyModels: [AIModel] {
-        models.filter { $0.isLegacy }
-    }
-}
-
-// MARK: - Extensions for backward compatibility
-extension ModelConfiguration {
-    static var availableModels: [ModelConfiguration] {
-        AIModelsRegistry.shared.allModels.compactMap { $0.mlxConfiguration }
-    }
-
-    static var defaultModel: ModelConfiguration {
-        let defaultAIModel = AIModelsRegistry.shared.defaultModel
-        return defaultAIModel.mlxConfiguration ?? ModelConfiguration(id: defaultAIModel.id)
-    }
-
-    static func getModelByName(_ name: String) -> ModelConfiguration? {
-        AIModelsRegistry.shared.modelByName(name)?.mlxConfiguration
+        allModels.filter { $0.isLegacy }
     }
 }
 

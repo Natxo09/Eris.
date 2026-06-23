@@ -68,28 +68,51 @@ struct OnboardingModelSetupView: View {
             
             // Continue button
             if DeviceUtils.canRunMLX {
-                NavigationLink(
-                    destination: OnboardingDownloadView(
-                        showOnboarding: $showOnboarding,
-                        selectedModel: selectedAIModel ?? registry.defaultModel
-                    )
-                ) {
-                    Text("Download Model")
-                        .font(.headline)
-                        .foregroundColor(Color(UIColor.systemBackground))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(selectedAIModel != nil ? Color(UIColor.label) : Color.gray)
-                        .cornerRadius(16)
-                }
-                .disabled(selectedAIModel == nil)
-                .simultaneousGesture(TapGesture().onEnded { _ in
-                    if selectedAIModel != nil {
+                if selectedAIModel?.isSystemManaged == true {
+                    // System-managed models (Apple Intelligence) need no download:
+                    // activate them and finish onboarding directly.
+                    Button {
                         HapticManager.shared.buttonTap()
+                        if let model = selectedAIModel {
+                            modelManager.setActive(model)
+                        }
+                        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                        showOnboarding = false
+                    } label: {
+                        Text("Continue")
+                            .font(.headline)
+                            .foregroundColor(Color(UIColor.systemBackground))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color(UIColor.label))
+                            .cornerRadius(16)
                     }
-                })
-                .padding(.horizontal, 20)
-                .padding(.bottom, 30)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 30)
+                } else {
+                    NavigationLink(
+                        destination: OnboardingDownloadView(
+                            showOnboarding: $showOnboarding,
+                            selectedModel: selectedAIModel ?? registry.defaultModel
+                        )
+                    ) {
+                        Text("Download Model")
+                            .font(.headline)
+                            .foregroundColor(Color(UIColor.systemBackground))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(selectedAIModel != nil ? Color(UIColor.label) : Color.gray)
+                            .cornerRadius(16)
+                    }
+                    .disabled(selectedAIModel == nil)
+                    .simultaneousGesture(TapGesture().onEnded { _ in
+                        if selectedAIModel != nil {
+                            HapticManager.shared.buttonTap()
+                        }
+                    })
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 30)
+                }
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -164,6 +187,7 @@ struct ModelSelectionCard: View {
     private let registry = AIModelsRegistry.shared
     
     var modelSize: String {
+        if aiModel.isSystemManaged { return "Built-in" }
         let sizeInGB = Double(aiModel.estimatedRAMUsage) / 1024.0
         return String(format: "%.1f GB", sizeInGB)
     }
@@ -232,18 +256,20 @@ struct ModelSelectionCard: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .lineLimit(2)
                         
-                        // Compatibility indicator
-                        let compatibility = registry.compatibilityForModel(aiModel)
-                        HStack(spacing: 4) {
-                            Image(systemName: compatibility.icon)
-                                .font(.caption)
-                                .foregroundColor(compatibility.color)
-                            Text(compatibility.description)
-                                .font(.caption)
-                                .foregroundColor(compatibility.color)
-                            Spacer()
+                        // Compatibility indicator (not shown for system-managed models)
+                        if !aiModel.isSystemManaged {
+                            let compatibility = registry.compatibilityForModel(aiModel)
+                            HStack(spacing: 4) {
+                                Image(systemName: compatibility.icon)
+                                    .font(.caption)
+                                    .foregroundColor(compatibility.color)
+                                Text(compatibility.description)
+                                    .font(.caption)
+                                    .foregroundColor(compatibility.color)
+                                Spacer()
+                            }
+                            .padding(.top, 2)
                         }
-                        .padding(.top, 2)
                     }
                     
                     Spacer()
