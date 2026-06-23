@@ -1,8 +1,11 @@
 //
-//  LLMEvaluator.swift
+//  MLXEngine.swift
 //  Eris.
 //
-//  Created by Ignacio Palacio on 19/6/25.
+//  MLX-backed `ChatEngine`. This is the former `LLMEvaluator`, with its inference
+//  logic kept intact (DEV-597). UI state is now reported through `ChatEngineDelegate`
+//  instead of `@Published` properties so the engine can sit behind the `ChatEngine`
+//  abstraction.
 //
 
 import MLX
@@ -15,22 +18,22 @@ import Tokenizers
 import SwiftUI
 
 // Helper class to manage cancellation state across actor boundaries
-class CancellationToken {
+final class CancellationToken {
     private var _isCancelled = false
     private let lock = NSLock()
-    
+
     var isCancelled: Bool {
         lock.lock()
         defer { lock.unlock() }
         return _isCancelled
     }
-    
+
     func cancel() {
         lock.lock()
         defer { lock.unlock() }
         _isCancelled = true
     }
-    
+
     func reset() {
         lock.lock()
         defer { lock.unlock() }
@@ -39,119 +42,112 @@ class CancellationToken {
 }
 
 @MainActor
-class LLMEvaluator: ObservableObject {
-    @Published var running = false
-    @Published var isLoadingModel = false
-    @Published var output = ""
-    @Published var modelInfo = ""
-    @Published var progress = 0.0
-    @Published var tokensGenerated = 0
-    
-    private var modelConfiguration: ModelConfiguration?
+final class MLXEngine: ChatEngine {
     private let generateParameters = GenerateParameters(maxTokens: 2048, temperature: 0.7)
     private let cancellationToken = CancellationToken()
-    
+
+    /// Set for the duration of a `generate` call so the loading phase can report progress.
+    private weak var delegate: ChatEngineDelegate?
+
     enum LoadState {
         case idle
         case loading
         case loaded(ModelContainer)
         case failed(Error)
     }
-    
+
     var loadState = LoadState.idle
-    
+
+    func cancel() {
+        cancellationToken.cancel()
+    }
+
     func load() async throws -> ModelContainer {
         guard let modelConfiguration = ModelManager.shared.activeModel else {
-            throw NSError(domain: "LLMEvaluator", code: 1, userInfo: [NSLocalizedDescriptionKey: "No model selected"])
+            throw NSError(domain: "MLXEngine", code: 1, userInfo: [NSLocalizedDescriptionKey: "No model selected"])
         }
         switch loadState {
         case .idle, .failed:
             loadState = .loading
-            isLoadingModel = true
-            
+            delegate?.chatEngine(self, didChangeLoadingState: true)
+
             // Use conservative cache limit during model loading
             // Similar to Fullmoon's approach for better stability
             let cacheLimit = 20 * 1024 * 1024 // 20MB during initial load
             MLX.Memory.cacheLimit = cacheLimit
             print("GPU cache limit set to: \(cacheLimit / 1024 / 1024)MB for model loading")
-            
+
             do {
                 // For low-memory devices, use compatibility mode
                 if DeviceUtils.chipFamily == .a13 || DeviceUtils.chipFamily == .a14 {
                     print("⏳ Using compatibility mode for limited memory device...")
-                    
+
                     // Force memory cleanup
                     MemoryManager.shared.performLowMemoryCleanup()
-                    
+
                     // Wait for system to stabilize
                     try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-                    
+
                     // Set minimal cache
                     MLX.Memory.cacheLimit = 16 * 1024 * 1024 // 16MB minimum
                 }
-                
+
                 let modelContainer = try await LLMModelFactory.shared.loadContainer(
                     from: #hubDownloader(),
                     using: #huggingFaceTokenizerLoader(),
                     configuration: modelConfiguration
                 ) { progress in
                     Task { @MainActor in
-                        self.modelInfo = "Downloading: \(Int(progress.fractionCompleted * 100))%"
-                        self.progress = progress.fractionCompleted
+                        self.delegate?.chatEngine(self, didUpdateDownloadProgress: progress.fractionCompleted)
                     }
                 }
-                
-                modelInfo = "Model loaded successfully"
+
                 loadState = .loaded(modelContainer)
-                isLoadingModel = false
-                
+                delegate?.chatEngine(self, didChangeLoadingState: false)
+
                 // After successful load, adjust cache based on device
                 let runtimeCacheLimit = getCacheLimitForDevice()
                 MLX.Memory.cacheLimit = runtimeCacheLimit
                 print("Runtime cache limit adjusted to: \(runtimeCacheLimit / 1024 / 1024)MB")
-                
+
                 return modelContainer
-                
+
             } catch {
                 loadState = .failed(error)
-                isLoadingModel = false
-                
+                delegate?.chatEngine(self, didChangeLoadingState: false)
+
                 // Log detailed error information
                 print("❌ Failed to load model: \(error)")
-                
+
                 // Check if it's a Metal compilation error
                 let errorDescription = error.localizedDescription.lowercased()
                 if errorDescription.contains("metal") || errorDescription.contains("kernel") || errorDescription.contains("xpc_error") {
                     print("⚠️ Metal compilation error detected. This may be due to memory constraints.")
                     print("💡 Try closing other apps and restarting the device.")
                 }
-                
+
                 throw error
             }
-            
+
         case .loading:
             // Wait for current load
             while case .loading = loadState {
                 try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             }
             return try await load()
-            
+
         case let .loaded(modelContainer):
             return modelContainer
         }
     }
-    
-    func stopGeneration() {
-        cancellationToken.cancel()
-    }
-    
+
     private func getCacheLimitForDevice() -> Int {
         // Get device info
         let chipFamily = DeviceUtils.chipFamily
-        
+
         // Base cache sizes in MB
         let baseCacheSize: Int
-        
+
         switch chipFamily {
         case .a13, .a14:
             // iPhone 11, 12 series - 4GB RAM devices
@@ -169,32 +165,29 @@ class LLMEvaluator: ObservableObject {
             // Conservative default
             baseCacheSize = 32
         }
-        
+
         return baseCacheSize * 1024 * 1024
     }
-    
-    func generate(thread: Thread, systemPrompt: String = "You are a helpful assistant.") async -> String {
-        guard !running else { return "" }
-        
-        running = true
-        output = ""
-        tokensGenerated = 0
+
+    func generate(thread: Thread, systemPrompt: String, delegate: ChatEngineDelegate) async -> String {
+        self.delegate = delegate
         cancellationToken.reset()
-        
+
+        var output = ""
+        var tokensGenerated = 0
+
         do {
-            // Check if model needs to be loaded
+            // Reflect the initial loading state to the delegate
             switch loadState {
-            case .idle, .failed:
-                isLoadingModel = true
-            case .loading:
-                isLoadingModel = true
+            case .idle, .failed, .loading:
+                delegate.chatEngine(self, didChangeLoadingState: true)
             case .loaded:
-                isLoadingModel = false
+                delegate.chatEngine(self, didChangeLoadingState: false)
             }
-            
+
             let modelContainer = try await load()
-            isLoadingModel = false
-            
+            delegate.chatEngine(self, didChangeLoadingState: false)
+
             // Build the structured chat history (system prompt + conversation)
             var chat: [Chat.Message] = [.system(systemPrompt)]
             for message in thread.sortedMessages {
@@ -218,25 +211,22 @@ class LLMEvaluator: ObservableObject {
                 parameters: generateParameters
             )
 
-            var generatedText = ""
             for await generation in stream {
                 if cancellationToken.isCancelled { break }
                 switch generation {
                 case .chunk(let text):
-                    generatedText += text
-                    output = generatedText
+                    output += text
                     tokensGenerated += 1
+                    delegate.chatEngine(self, didProduceOutput: output, tokenCount: tokensGenerated)
                 case .info, .toolCall:
                     break
                 }
             }
 
-            output = generatedText
-            
         } catch {
             // Provide more helpful error messages
             let errorDescription = error.localizedDescription.lowercased()
-            
+
             if errorDescription.contains("metal") || errorDescription.contains("kernel") || errorDescription.contains("xpc_error") {
                 output = "Error: Unable to load model due to memory constraints. Please try:\n1. Close other apps\n2. Restart your device\n3. Try a smaller model (0.5B or 1B)"
             } else if errorDescription.contains("memory") {
@@ -244,11 +234,12 @@ class LLMEvaluator: ObservableObject {
             } else {
                 output = "Error: \(error.localizedDescription)"
             }
-            
+
+            delegate.chatEngine(self, didProduceOutput: output, tokenCount: tokensGenerated)
             print("❌ Generation error: \(error)")
         }
-        
-        running = false
+
+        self.delegate = nil
         return output
     }
 }

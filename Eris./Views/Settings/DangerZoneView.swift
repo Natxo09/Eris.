@@ -7,7 +7,6 @@
 
 import SwiftUI
 import SwiftData
-import MLXLMCommon
 
 struct DangerZoneView: View {
     @Environment(\.dismiss) private var dismiss
@@ -187,9 +186,9 @@ struct DangerZoneView: View {
         Task {
             // Clear all models from ModelManager
             for aiModel in AIModelsRegistry.shared.allModels {
-                modelManager.deleteModel(aiModel.configuration)
+                modelManager.delete(aiModel)
             }
-            
+
             // Try to clear cache directories
             clearModelCaches()
             
@@ -218,7 +217,7 @@ struct DangerZoneView: View {
                 
                 // Delete all models
                 for aiModel in AIModelsRegistry.shared.allModels {
-                    modelManager.deleteModel(aiModel.configuration)
+                    modelManager.delete(aiModel)
                 }
                 
                 // Clear all UserDefaults

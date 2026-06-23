@@ -67,9 +67,12 @@ class ModelManager: ObservableObject {
     }
     
     private func loadActiveModel() {
-        if let modelName = userDefaults.string(forKey: activeModelKey),
-           let aiModel = AIModelsRegistry.shared.modelByName(modelName) {
-            activeModel = aiModel.configuration
+        guard let storedKey = userDefaults.string(forKey: activeModelKey) else { return }
+        // Stored value is the MLX repo name for MLX models, or the model id for
+        // sources without a configuration (e.g. Apple Foundation, DEV-598).
+        if let aiModel = AIModelsRegistry.shared.modelByName(storedKey)
+            ?? AIModelsRegistry.shared.modelById(storedKey) {
+            activeModel = aiModel.mlxConfiguration
             activeAIModel = aiModel
         }
     }
@@ -252,28 +255,97 @@ class ModelManager: ObservableObject {
         // If this was the active model, clear it
         if activeModel?.name == model.name {
             activeModel = nil
+            activeAIModel = nil
             userDefaults.removeObject(forKey: activeModelKey)
         }
-        
+
         // Try to delete model files from disk
         deleteModelFiles(for: model)
     }
-    
+
     func deleteAllModels() {
         // Clear all models
         downloadedModels.removeAll()
         saveDownloadedModels()
-        
+
         // Clear active model
         activeModel = nil
+        activeAIModel = nil
         userDefaults.removeObject(forKey: activeModelKey)
         
         // Delete all model files
         for aiModel in AIModelsRegistry.shared.allModels {
-            deleteModelFiles(for: aiModel.configuration)
+            if let configuration = aiModel.mlxConfiguration {
+                deleteModelFiles(for: configuration)
+            }
         }
     }
     
+    // MARK: - Source-aware API (DEV-597)
+    // These operate on `AIModel` and dispatch on `ModelSource`, so callers no
+    // longer need to handle MLX `ModelConfiguration` directly. Sources that are
+    // not downloaded on-demand (e.g. Apple Foundation Models) are treated as
+    // always-ready and their download/delete operations become no-ops.
+
+    /// Whether the model is ready to use (downloaded for MLX, always-on for system models).
+    func isReady(_ model: AIModel) -> Bool {
+        switch model.source {
+        case .mlx(let configuration):
+            return downloadedModels.contains(configuration.name)
+        case .appleFoundation:
+            return true
+        }
+    }
+
+    /// Whether this is the currently active model.
+    func isActive(_ model: AIModel) -> Bool {
+        activeAIModel?.id == model.id
+    }
+
+    /// Whether an MLX download is currently in progress for this model.
+    func isDownloading(_ model: AIModel) -> Bool {
+        guard case .mlx(let configuration) = model.source else { return false }
+        return downloadingModels.contains(configuration.name)
+    }
+
+    /// Current download progress (`0...1`) for this model, if any.
+    func downloadProgress(for model: AIModel) -> Double {
+        guard case .mlx(let configuration) = model.source else { return 0 }
+        return downloadProgress[configuration.name] ?? 0
+    }
+
+    /// Marks the given model as active, persisting the selection.
+    func setActive(_ model: AIModel) {
+        switch model.source {
+        case .mlx(let configuration):
+            setActiveModel(configuration)
+        case .appleFoundation:
+            activeModel = nil
+            activeAIModel = model
+            userDefaults.set(model.id, forKey: activeModelKey)
+        }
+    }
+
+    /// Downloads the model if its source requires it; a no-op otherwise.
+    func download(_ model: AIModel, progressHandler: @escaping (Progress) -> Void) async throws {
+        switch model.source {
+        case .mlx(let configuration):
+            try await downloadModel(configuration, progressHandler: progressHandler)
+        case .appleFoundation:
+            return
+        }
+    }
+
+    /// Deletes the model's local files if its source has any; a no-op otherwise.
+    func delete(_ model: AIModel) {
+        switch model.source {
+        case .mlx(let configuration):
+            deleteModel(configuration)
+        case .appleFoundation:
+            return
+        }
+    }
+
     private func deleteModelFiles(for model: ModelConfiguration) {
         let fileManager = FileManager.default
 

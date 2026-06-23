@@ -70,7 +70,7 @@ enum ModelCompatibility {
 // MARK: - AI Model
 struct AIModel: Identifiable {
     let id: String
-    let configuration: ModelConfiguration
+    let source: ModelSource
     let category: ModelCategory
     let displayName: String
     let description: String
@@ -80,6 +80,33 @@ struct AIModel: Identifiable {
     let quantization: String // e.g., "4-bit", "8-bit"
     let isLegacy: Bool // For older models kept for compatibility
 
+    /// General initializer covering any `ModelSource`.
+    init(
+        id: String,
+        source: ModelSource,
+        category: ModelCategory,
+        displayName: String,
+        description: String,
+        estimatedRAMUsage: Int,
+        minimumChipRequired: DeviceUtils.ChipFamily,
+        parameterCount: String,
+        quantization: String,
+        isLegacy: Bool = false
+    ) {
+        self.id = id
+        self.source = source
+        self.category = category
+        self.displayName = displayName
+        self.description = description
+        self.estimatedRAMUsage = estimatedRAMUsage
+        self.minimumChipRequired = minimumChipRequired
+        self.parameterCount = parameterCount
+        self.quantization = quantization
+        self.isLegacy = isLegacy
+    }
+
+    /// Convenience initializer for MLX-backed models. Keeps the registry
+    /// declarations unchanged while `source` becomes the source of truth.
     init(
         id: String,
         configuration: ModelConfiguration,
@@ -92,20 +119,28 @@ struct AIModel: Identifiable {
         quantization: String,
         isLegacy: Bool = false
     ) {
-        self.id = id
-        self.configuration = configuration
-        self.category = category
-        self.displayName = displayName
-        self.description = description
-        self.estimatedRAMUsage = estimatedRAMUsage
-        self.minimumChipRequired = minimumChipRequired
-        self.parameterCount = parameterCount
-        self.quantization = quantization
-        self.isLegacy = isLegacy
+        self.init(
+            id: id,
+            source: .mlx(configuration),
+            category: category,
+            displayName: displayName,
+            description: description,
+            estimatedRAMUsage: estimatedRAMUsage,
+            minimumChipRequired: minimumChipRequired,
+            parameterCount: parameterCount,
+            quantization: quantization,
+            isLegacy: isLegacy
+        )
+    }
+
+    /// The MLX configuration when this model is MLX-backed, otherwise `nil`.
+    var mlxConfiguration: ModelConfiguration? {
+        if case .mlx(let configuration) = source { return configuration }
+        return nil
     }
 
     var fullName: String {
-        configuration.name
+        mlxConfiguration?.name ?? displayName
     }
 
     var shortName: String {
@@ -299,11 +334,11 @@ class AIModelsRegistry {
     }
 
     func modelByConfiguration(_ configuration: ModelConfiguration) -> AIModel? {
-        models.first { $0.configuration.name == configuration.name }
+        models.first { $0.mlxConfiguration?.name == configuration.name }
     }
 
     func modelByName(_ name: String) -> AIModel? {
-        models.first { $0.configuration.name == name }
+        models.first { $0.mlxConfiguration?.name == name }
     }
 
     func modelById(_ id: String) -> AIModel? {
@@ -386,15 +421,16 @@ class AIModelsRegistry {
 // MARK: - Extensions for backward compatibility
 extension ModelConfiguration {
     static var availableModels: [ModelConfiguration] {
-        AIModelsRegistry.shared.allModels.map { $0.configuration }
+        AIModelsRegistry.shared.allModels.compactMap { $0.mlxConfiguration }
     }
 
     static var defaultModel: ModelConfiguration {
-        AIModelsRegistry.shared.defaultModel.configuration
+        let defaultAIModel = AIModelsRegistry.shared.defaultModel
+        return defaultAIModel.mlxConfiguration ?? ModelConfiguration(id: defaultAIModel.id)
     }
 
     static func getModelByName(_ name: String) -> ModelConfiguration? {
-        AIModelsRegistry.shared.modelByName(name)?.configuration
+        AIModelsRegistry.shared.modelByName(name)?.mlxConfiguration
     }
 }
 
