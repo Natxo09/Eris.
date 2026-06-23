@@ -6,12 +6,11 @@
 //
 
 import SwiftUI
-import MLXLMCommon
 
 struct OnboardingDownloadView: View {
     @Binding var showOnboarding: Bool
-    let selectedModel: ModelConfiguration
-    
+    let selectedModel: AIModel
+
     @StateObject private var modelManager = ModelManager.shared
     @StateObject private var networkMonitor = NetworkMonitor.shared
     @State private var downloadProgress: Double = 0.0
@@ -19,9 +18,9 @@ struct OnboardingDownloadView: View {
     @State private var errorMessage: String?
     @State private var showCompatibilityWarning = false
     @State private var showCellularWarning = false
-    
+
     private var selectedAIModel: AIModel? {
-        AIModelsRegistry.shared.modelByConfiguration(selectedModel)
+        selectedModel
     }
     
     enum DownloadState {
@@ -293,7 +292,7 @@ struct OnboardingDownloadView: View {
         
         Task {
             do {
-                try await modelManager.downloadModel(selectedModel) { progress in
+                try await modelManager.download(selectedModel) { progress in
                     Task { @MainActor in
                         self.downloadProgress = progress.fractionCompleted
                     }
@@ -323,7 +322,7 @@ struct OnboardingDownloadView: View {
     
     private func completeOnboarding() {
         // Set the downloaded model as active
-        modelManager.setActiveModel(selectedModel)
+        modelManager.setActive(selectedModel)
         
         // Mark onboarding as complete
         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
@@ -337,7 +336,7 @@ struct OnboardingDownloadView: View {
     NavigationStack {
         OnboardingDownloadView(
             showOnboarding: .constant(true),
-            selectedModel: AIModelsRegistry.shared.defaultModel.configuration
+            selectedModel: AIModelsRegistry.shared.defaultModel
         )
     }
 }

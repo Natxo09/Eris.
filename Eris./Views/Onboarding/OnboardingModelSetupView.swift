@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import MLXLMCommon
 
 struct OnboardingModelSetupView: View {
     @Binding var showOnboarding: Bool
@@ -53,7 +52,7 @@ struct OnboardingModelSetupView: View {
                         ModelSelectionCard(
                             aiModel: aiModel,
                             isSelected: selectedAIModel?.id == aiModel.id,
-                            isDownloaded: modelManager.isModelDownloaded(aiModel.configuration),
+                            isDownloaded: modelManager.isReady(aiModel),
                             isRecommended: aiModel.id == getRecommendedModelForDevice().id && registry.compatibilityForModel(aiModel) == .recommended
                         ) {
                             HapticManager.shared.selection()
@@ -72,7 +71,7 @@ struct OnboardingModelSetupView: View {
                 NavigationLink(
                     destination: OnboardingDownloadView(
                         showOnboarding: $showOnboarding,
-                        selectedModel: selectedAIModel?.configuration ?? registry.defaultModel.configuration
+                        selectedModel: selectedAIModel ?? registry.defaultModel
                     )
                 ) {
                     Text("Download Model")

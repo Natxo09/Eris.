@@ -6,30 +6,29 @@
 //
 
 import SwiftUI
-import MLXLMCommon
 
 struct ModelPickerView: View {
     @StateObject private var modelManager = ModelManager.shared
-    let selectedModel: MLXLMCommon.ModelConfiguration?
-    let onSelect: (MLXLMCommon.ModelConfiguration) -> Void
-    
+    let selectedModel: AIModel?
+    let onSelect: (AIModel) -> Void
+
     private let registry = AIModelsRegistry.shared
-    
+
     var body: some View {
         List {
             ForEach(ModelCategory.allCases, id: \.self) { category in
                 let downloadedModelsInCategory = registry.modelsForCategory(category)
-                    .filter { modelManager.isModelDownloaded($0.configuration) }
-                
+                    .filter { modelManager.isReady($0) }
+
                 if !downloadedModelsInCategory.isEmpty {
                     Section {
                         ForEach(downloadedModelsInCategory) { aiModel in
                             ModelPickerRow(
                                 aiModel: aiModel,
-                                isSelected: selectedModel?.name == aiModel.configuration.name,
+                                isSelected: selectedModel?.id == aiModel.id,
                                 onTap: {
                                     HapticManager.shared.selection()
-                                    onSelect(aiModel.configuration)
+                                    onSelect(aiModel)
                                 }
                             )
                         }

@@ -7,12 +7,11 @@
 
 import SwiftUI
 import SwiftData
-import MLXLMCommon
 
 
 struct ChatView: View {
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var llmEvaluator = LLMEvaluator()
+    @StateObject private var engine = ChatEngineRunner()
     @StateObject private var modelManager = ModelManager.shared
     @StateObject private var scrollManager = ChatScrollManager()
     @FocusState private var isInputFocused: Bool
@@ -35,7 +34,7 @@ struct ChatView: View {
                 ScrollView {
                         VStack(spacing: 16) {
                         // Empty state
-                        if thread.sortedMessages.isEmpty && !llmEvaluator.running {
+                        if thread.sortedMessages.isEmpty && !engine.running {
                             EmptyChatView()
                                 .padding(.top, 100)
                         }
@@ -51,8 +50,8 @@ struct ChatView: View {
                         }
                         
                         // Typing indicator
-                        if llmEvaluator.running {
-                            TypingIndicator(text: llmEvaluator.output)
+                        if engine.running {
+                            TypingIndicator(text: engine.output)
                                 .transition(.scale.combined(with: .opacity))
                         }
                         
@@ -96,17 +95,17 @@ struct ChatView: View {
                         scrollManager.handleNewMessage()
                     }
                 }
-                .onChange(of: llmEvaluator.running) { _, newValue in
+                .onChange(of: engine.running) { _, newValue in
                     if newValue {
                         scrollManager.handleTypingStarted()
                     }
                 }
-                .onChange(of: llmEvaluator.output) { _, _ in
+                .onChange(of: engine.output) { _, _ in
                     scrollManager.handleContentUpdate()
                 }
-                .onChange(of: llmEvaluator.tokensGenerated) { _, newTokenCount in
+                .onChange(of: engine.tokensGenerated) { _, newTokenCount in
                     // Check if we're generating a code block
-                    let codeBlockStarts = llmEvaluator.output.components(separatedBy: "```").count - 1
+                    let codeBlockStarts = engine.output.components(separatedBy: "```").count - 1
                     let isGeneratingCode = codeBlockStarts % 2 == 1
                     
                     // Haptic feedback only if we're scrolled to bottom and NOT generating code
@@ -159,14 +158,14 @@ struct ChatView: View {
             VStack(spacing: 0) {
                 ChatInputView(
                     text: $inputText,
-                    isGenerating: llmEvaluator.running,
-                    isLoadingModel: llmEvaluator.isLoadingModel,
+                    isGenerating: engine.running,
+                    isLoadingModel: engine.isLoadingModel,
                     onSend: {
                         HapticManager.shared.messageSent()
                         sendMessage()
                     },
                     onStop: {
-                        llmEvaluator.stopGeneration()
+                        engine.stop()
                     }
                 )
                 .focused($isInputFocused)
@@ -195,11 +194,11 @@ struct ChatView: View {
         .toolbar {
             if #available(iOS 26.0, *) {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if let activeModel = modelManager.activeModel {
+                    if let activeModel = modelManager.activeAIModel {
                         HStack(spacing: 6) {
                             Image(systemName: "cpu")
                                 .font(.system(size: 14, weight: .medium))
-                            Text(formatModelName(activeModel))
+                            Text(activeModel.displayName)
                                 .font(.system(size: 14, weight: .medium))
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 10, weight: .semibold))
@@ -217,7 +216,7 @@ struct ChatView: View {
                 .sharedBackgroundVisibility(.hidden)
             } else {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if let activeModel = modelManager.activeModel {
+                    if let activeModel = modelManager.activeAIModel {
                         Button(action: {
                             HapticManager.shared.selection()
                             showModelPicker.toggle()
@@ -225,7 +224,7 @@ struct ChatView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "cpu")
                                     .font(.system(size: 14, weight: .medium))
-                                Text(formatModelName(activeModel))
+                                Text(activeModel.displayName)
                                     .font(.system(size: 14, weight: .medium))
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 10, weight: .semibold))
@@ -268,8 +267,8 @@ struct ChatView: View {
         }
         .sheet(isPresented: $showModelPicker) {
             NavigationStack {
-                ModelPickerView(selectedModel: modelManager.activeModel) { model in
-                    modelManager.setActiveModel(model)
+                ModelPickerView(selectedModel: modelManager.activeAIModel) { aiModel in
+                    modelManager.setActive(aiModel)
                     showModelPicker = false
                 }
                 .navigationTitle("Select Model")
@@ -291,7 +290,7 @@ struct ChatView: View {
         guard !inputText.isEmpty else { return }
         
         // Check if model is selected
-        guard modelManager.activeModel != nil else {
+        guard modelManager.activeAIModel != nil else {
             showNoModelAlert = true
             return
         }
@@ -345,7 +344,7 @@ struct ChatView: View {
             Be helpful, concise, and privacy-conscious in your responses.
             """
             
-            let response = await llmEvaluator.generate(thread: thread, systemPrompt: systemPrompt)
+            let response = await engine.generate(thread: thread, systemPrompt: systemPrompt)
             
             // Add assistant message
             let assistantMessage = Message(content: response, role: .assistant)
@@ -371,15 +370,6 @@ struct ChatView: View {
         }
     }
     
-    private func formatModelName(_ model: MLXLMCommon.ModelConfiguration) -> String {
-        model.name
-            .replacingOccurrences(of: "mlx-community/", with: "")
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "Instruct", with: "")
-            .replacingOccurrences(of: "4bit", with: "")
-            .replacingOccurrences(of: "8bit", with: "")
-            .trimmingCharacters(in: .whitespaces)
-    }
 }
 
 // MARK: - Chat Components

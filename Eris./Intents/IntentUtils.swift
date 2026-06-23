@@ -29,8 +29,8 @@ enum IntentError: LocalizedError {
 @available(iOS 16.0, *)
 @MainActor
 struct IntentUtils {
-    // Shared LLM evaluator for all intents to improve performance
-    static let sharedLLMEvaluator = LLMEvaluator()
+    // Shared chat engine runner for all intents to improve performance
+    static let sharedRunner = ChatEngineRunner()
     
     /// Selects the appropriate model based on user input or defaults to active model
     static func selectModel(requestedName: String?) -> Result<MLXLMCommon.ModelConfiguration, IntentError> {
@@ -91,8 +91,8 @@ struct IntentUtils {
             modelManager.setActiveModel(model)
         }
         
-        // Use the shared LLM evaluator for better performance
-        let response = await sharedLLMEvaluator.generate(
+        // Use the shared chat engine runner for better performance
+        let response = await sharedRunner.generate(
             thread: thread,
             systemPrompt: systemPrompt
         )

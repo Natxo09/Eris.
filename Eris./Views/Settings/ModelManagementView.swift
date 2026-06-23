@@ -6,12 +6,11 @@
 //
 
 import SwiftUI
-import MLXLMCommon
 
 struct ModelManagementView: View {
     @StateObject private var modelManager = ModelManager.shared
     @StateObject private var networkMonitor = NetworkMonitor.shared
-    @State private var selectedModel: ModelConfiguration?
+    @State private var selectedModel: AIModel?
     @State private var showCompatibilityWarning = false
     @State private var modelToDownload: AIModel?
     @State private var showCellularWarning = false
@@ -93,15 +92,15 @@ struct ModelManagementView: View {
                             ForEach(registry.modelsForCategory(category)) { aiModel in
                                 ModelCard(
                                     aiModel: aiModel,
-                                    isSelected: modelManager.activeModel?.name == aiModel.configuration.name,
-                                    isDownloaded: modelManager.isModelDownloaded(aiModel.configuration),
-                                    isDownloading: modelManager.downloadingModels.contains(aiModel.configuration.name),
-                                    downloadProgress: modelManager.downloadProgress[aiModel.configuration.name] ?? 0.0,
+                                    isSelected: modelManager.isActive(aiModel),
+                                    isDownloaded: modelManager.isReady(aiModel),
+                                    isDownloading: modelManager.isDownloading(aiModel),
+                                    downloadProgress: modelManager.downloadProgress(for: aiModel),
                                     hasActiveDownload: !modelManager.downloadingModels.isEmpty,
                                     onSelect: {
                                         HapticManager.shared.selection()
-                                        if modelManager.isModelDownloaded(aiModel.configuration) {
-                                            modelManager.setActiveModel(aiModel.configuration)
+                                        if modelManager.isReady(aiModel) {
+                                            modelManager.setActive(aiModel)
                                         }
                                     },
                                     onDownload: {
@@ -124,13 +123,13 @@ struct ModelManagementView: View {
                                                 modelToDownload = aiModel
                                                 showCompatibilityWarning = true
                                             } else {
-                                                downloadModel(aiModel.configuration)
+                                                downloadModel(aiModel)
                                             }
                                         }
                                     },
                                     onDelete: {
                                         HapticManager.shared.warning()
-                                        deleteModel(aiModel.configuration)
+                                        deleteModel(aiModel)
                                     }
                                 )
                                 .disabled(DeviceUtils.isSimulator || !DeviceUtils.canRunMLX)
@@ -146,12 +145,12 @@ struct ModelManagementView: View {
         .navigationTitle("Model Management")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            selectedModel = modelManager.activeModel
+            selectedModel = modelManager.activeAIModel
         }
         .alert("Compatibility Warning", isPresented: $showCompatibilityWarning) {
             Button("Download Anyway", role: .destructive) {
                 if let aiModel = modelToDownload {
-                    downloadModel(aiModel.configuration)
+                    downloadModel(aiModel)
                 }
             }
             Button("Cancel", role: .cancel) {
@@ -177,10 +176,10 @@ struct ModelManagementView: View {
     }
     
     
-    private func downloadModel(_ model: ModelConfiguration) {
+    private func downloadModel(_ model: AIModel) {
         Task {
             do {
-                try await modelManager.downloadModel(model) { progress in
+                try await modelManager.download(model) { progress in
                     // Progress is already being tracked in ModelManager
                 }
                 
@@ -205,14 +204,15 @@ struct ModelManagementView: View {
         }
     }
     
-    private func deleteModel(_ model: ModelConfiguration) {
-        modelManager.deleteModel(model)
-        if modelManager.activeModel?.name == model.name {
-            // If deleting the active model, try to set another downloaded model as active
-            if let firstAvailableModel = registry.allModels.first(where: { 
-                $0.configuration.name != model.name && modelManager.isModelDownloaded($0.configuration) 
+    private func deleteModel(_ model: AIModel) {
+        let wasActive = modelManager.isActive(model)
+        modelManager.delete(model)
+        if wasActive {
+            // If deleting the active model, try to set another ready model as active
+            if let firstAvailableModel = registry.allModels.first(where: {
+                $0.id != model.id && modelManager.isReady($0)
             }) {
-                modelManager.setActiveModel(firstAvailableModel.configuration)
+                modelManager.setActive(firstAvailableModel)
             }
             // If no other models are downloaded, activeModel will be cleared automatically
         }
