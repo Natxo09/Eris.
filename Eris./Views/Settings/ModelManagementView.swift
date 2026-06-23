@@ -67,7 +67,14 @@ struct ModelManagementView: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 20)
                 }
-                
+
+                // Apple Intelligence status: prompt the user to enable it when eligible (DEV-598)
+                if AppleIntelligenceAvailability.current == .appleIntelligenceNotEnabled {
+                    AppleIntelligenceBanner()
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+                }
+
                 // Models list by category
                 VStack(spacing: 20) {
                     ForEach(ModelCategory.allCases, id: \.self) { category in
@@ -252,6 +259,42 @@ struct DeviceCompatibilityWarning: View {
     }
 }
 
+struct AppleIntelligenceBanner: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.primary)
+                Text("Apple Intelligence")
+                    .font(.headline)
+                Spacer()
+            }
+
+            Text("Turn on Apple Intelligence in Settings to use Apple's built-in on-device model — no download required.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Text("Open Settings")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Color(UIColor.label))
+                    .foregroundColor(Color(UIColor.systemBackground))
+                    .cornerRadius(12)
+            }
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(12)
+    }
+}
+
 struct ModelCard: View {
     let aiModel: AIModel
     let isSelected: Bool
@@ -323,49 +366,63 @@ struct ModelCard: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .lineLimit(2)
-                        
-                        // Compatibility indicator
-                        let compatibility = registry.compatibilityForModel(aiModel)
-                        HStack(spacing: 4) {
-                            Image(systemName: compatibility.icon)
-                                .font(.caption)
-                                .foregroundColor(compatibility.color)
-                            Text(compatibility.description)
-                                .font(.caption)
-                                .foregroundColor(compatibility.color)
-                            Spacer()
-                        }
-                        .padding(.top, 2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        HStack(spacing: 12) {
-                            // Storage size
+
+                        if aiModel.isSystemManaged {
+                            // System-managed models (Apple Intelligence): no download, no RAM management.
                             HStack(spacing: 4) {
-                                Image(systemName: "internaldrive")
+                                Image(systemName: "sparkles")
                                     .font(.caption)
-                                Text(modelSize)
+                                Text("Built-in • Managed by iOS")
                                     .font(.caption)
+                                Spacer()
                             }
-                            
-                            // RAM usage
+                            .foregroundColor(.secondary)
+                            .padding(.top, 2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            // Compatibility indicator
+                            let compatibility = registry.compatibilityForModel(aiModel)
                             HStack(spacing: 4) {
-                                Image(systemName: "memorychip")
+                                Image(systemName: compatibility.icon)
                                     .font(.caption)
-                                Text("~\(String(format: "%.1f", Double(aiModel.estimatedRAMUsage) / 1024.0))GB RAM")
+                                    .foregroundColor(compatibility.color)
+                                Text(compatibility.description)
                                     .font(.caption)
+                                    .foregroundColor(compatibility.color)
+                                Spacer()
                             }
-                        }
-                        .foregroundColor(.secondary)
-                        
-                        // Warning for large models on iPhone
-                        if aiModel.parameterCount.contains("7B") && UIDevice.current.userInterfaceIdiom == .phone {
-                            HStack(spacing: 4) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.caption2)
-                                Text("May run slowly on iPhone")
-                                    .font(.caption2)
+                            .padding(.top, 2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            HStack(spacing: 12) {
+                                // Storage size
+                                HStack(spacing: 4) {
+                                    Image(systemName: "internaldrive")
+                                        .font(.caption)
+                                    Text(modelSize)
+                                        .font(.caption)
+                                }
+
+                                // RAM usage
+                                HStack(spacing: 4) {
+                                    Image(systemName: "memorychip")
+                                        .font(.caption)
+                                    Text("~\(String(format: "%.1f", Double(aiModel.estimatedRAMUsage) / 1024.0))GB RAM")
+                                        .font(.caption)
+                                }
                             }
-                            .foregroundColor(.orange)
+                            .foregroundColor(.secondary)
+
+                            // Warning for large models on iPhone
+                            if aiModel.parameterCount.contains("7B") && UIDevice.current.userInterfaceIdiom == .phone {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.caption2)
+                                    Text("May run slowly on iPhone")
+                                        .font(.caption2)
+                                }
+                                .foregroundColor(.orange)
+                            }
                         }
                     }
                     
@@ -389,8 +446,10 @@ struct ModelCard: View {
                                         Label("Set as Active", systemImage: "checkmark.circle")
                                     }
                                 }
-                                Button(role: .destructive, action: onDelete) {
-                                    Label("Delete Model", systemImage: "trash")
+                                if !aiModel.isSystemManaged {
+                                    Button(role: .destructive, action: onDelete) {
+                                        Label("Delete Model", systemImage: "trash")
+                                    }
                                 }
                             } label: {
                                 Image(systemName: "ellipsis.circle")

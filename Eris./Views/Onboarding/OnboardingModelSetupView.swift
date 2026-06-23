@@ -164,6 +164,7 @@ struct ModelSelectionCard: View {
     private let registry = AIModelsRegistry.shared
     
     var modelSize: String {
+        if aiModel.isSystemManaged { return "Built-in" }
         let sizeInGB = Double(aiModel.estimatedRAMUsage) / 1024.0
         return String(format: "%.1f GB", sizeInGB)
     }
@@ -232,18 +233,20 @@ struct ModelSelectionCard: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .lineLimit(2)
                         
-                        // Compatibility indicator
-                        let compatibility = registry.compatibilityForModel(aiModel)
-                        HStack(spacing: 4) {
-                            Image(systemName: compatibility.icon)
-                                .font(.caption)
-                                .foregroundColor(compatibility.color)
-                            Text(compatibility.description)
-                                .font(.caption)
-                                .foregroundColor(compatibility.color)
-                            Spacer()
+                        // Compatibility indicator (not shown for system-managed models)
+                        if !aiModel.isSystemManaged {
+                            let compatibility = registry.compatibilityForModel(aiModel)
+                            HStack(spacing: 4) {
+                                Image(systemName: compatibility.icon)
+                                    .font(.caption)
+                                    .foregroundColor(compatibility.color)
+                                Text(compatibility.description)
+                                    .font(.caption)
+                                    .foregroundColor(compatibility.color)
+                                Spacer()
+                            }
+                            .padding(.top, 2)
                         }
-                        .padding(.top, 2)
                     }
                     
                     Spacer()

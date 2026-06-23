@@ -20,16 +20,23 @@ final class ChatEngineRunner: ObservableObject, ChatEngineDelegate {
     // Concrete engines are cached so each keeps its own load state across
     // messages (the MLX engine caches the loaded `ModelContainer`).
     private lazy var mlxEngine = MLXEngine()
+    private var foundationEngine: ChatEngine?
     private var currentEngine: ChatEngine?
 
-    /// Resolves the engine for a given source. DEV-598 will return a
-    /// `FoundationModelsEngine` for `.appleFoundation`.
+    /// Resolves the engine for a given source.
     private func engine(for source: ModelSource) -> ChatEngine {
         switch source {
         case .mlx:
             return mlxEngine
         case .appleFoundation:
-            // Placeholder until DEV-598 wires up Apple Foundation Models.
+            if #available(iOS 26.0, *) {
+                if let foundationEngine { return foundationEngine }
+                let engine = FoundationModelsEngine()
+                foundationEngine = engine
+                return engine
+            }
+            // Unreachable in practice: the Apple model is never offered below
+            // iOS 26, but the switch must stay exhaustive.
             return mlxEngine
         }
     }

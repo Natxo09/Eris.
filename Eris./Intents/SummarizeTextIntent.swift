@@ -8,7 +8,6 @@
 import AppIntents
 import SwiftData
 import SwiftUI
-import MLXLMCommon
 
 @available(iOS 16.0, *)
 struct SummarizeTextIntent: AppIntent {
