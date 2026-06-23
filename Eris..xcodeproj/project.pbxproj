@@ -14,13 +14,9 @@
 		2ADFBF832E03F2D100B180E3 /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = 2ADFBF822E03F2D100B180E3 /* MLXNN */; };
 		2ADFBF852E03F2D100B180E3 /* MLXOptimizers in Frameworks */ = {isa = PBXBuildFile; productRef = 2ADFBF842E03F2D100B180E3 /* MLXOptimizers */; };
 		2ADFBF872E03F2D100B180E3 /* MLXRandom in Frameworks */ = {isa = PBXBuildFile; productRef = 2ADFBF862E03F2D100B180E3 /* MLXRandom */; };
-		2AE295EF2FEA8BCE00E1386B /* BenchmarkHelpers in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE295EE2FEA8BCE00E1386B /* BenchmarkHelpers */; };
-		2AE295F12FEA8BCE00E1386B /* IntegrationTestHelpers in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE295F02FEA8BCE00E1386B /* IntegrationTestHelpers */; };
-		2AE295F32FEA8BCE00E1386B /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE295F22FEA8BCE00E1386B /* MLXEmbedders */; };
 		2AE295F52FEA8BCE00E1386B /* MLXHuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE295F42FEA8BCE00E1386B /* MLXHuggingFace */; };
 		2AE295F72FEA8BCE00E1386B /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE295F62FEA8BCE00E1386B /* MLXLLM */; };
 		2AE295F92FEA8BCE00E1386B /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE295F82FEA8BCE00E1386B /* MLXLMCommon */; };
-		2AE295FB2FEA8BCE00E1386B /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE295FA2FEA8BCE00E1386B /* MLXVLM */; };
 		2AE295FE2FEA8E9C00E1386B /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE295FD2FEA8E9C00E1386B /* HuggingFace */; };
 		2AE296012FEA8EA900E1386B /* Hub in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE296002FEA8EA900E1386B /* Hub */; };
 		2AE296032FEA8EA900E1386B /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE296022FEA8EA900E1386B /* Tokenizers */; };
@@ -48,17 +44,13 @@
 				2ADFBF852E03F2D100B180E3 /* MLXOptimizers in Frameworks */,
 				2AE296012FEA8EA900E1386B /* Hub in Frameworks */,
 				2AE295FE2FEA8E9C00E1386B /* HuggingFace in Frameworks */,
-				2AE295F12FEA8BCE00E1386B /* IntegrationTestHelpers in Frameworks */,
 				2ADFBF7F2E03F2D100B180E3 /* MLXFast in Frameworks */,
 				2AE296052FEA8EA900E1386B /* Transformers in Frameworks */,
 				2ADFBF812E03F2D100B180E3 /* MLXLinalg in Frameworks */,
 				2AE295F52FEA8BCE00E1386B /* MLXHuggingFace in Frameworks */,
-				2AE295F32FEA8BCE00E1386B /* MLXEmbedders in Frameworks */,
 				2ADFBF7B2E03F2D100B180E3 /* MLX in Frameworks */,
 				2ADFBF832E03F2D100B180E3 /* MLXNN in Frameworks */,
 				2ADFBF7D2E03F2D100B180E3 /* MLXFFT in Frameworks */,
-				2AE295FB2FEA8BCE00E1386B /* MLXVLM in Frameworks */,
-				2AE295EF2FEA8BCE00E1386B /* BenchmarkHelpers in Frameworks */,
 				2ADFBF872E03F2D100B180E3 /* MLXRandom in Frameworks */,
 				2AE296032FEA8EA900E1386B /* Tokenizers in Frameworks */,
 				2AE295F92FEA8BCE00E1386B /* MLXLMCommon in Frameworks */,
@@ -111,13 +103,9 @@
 				2ADFBF822E03F2D100B180E3 /* MLXNN */,
 				2ADFBF842E03F2D100B180E3 /* MLXOptimizers */,
 				2ADFBF862E03F2D100B180E3 /* MLXRandom */,
-				2AE295EE2FEA8BCE00E1386B /* BenchmarkHelpers */,
-				2AE295F02FEA8BCE00E1386B /* IntegrationTestHelpers */,
-				2AE295F22FEA8BCE00E1386B /* MLXEmbedders */,
 				2AE295F42FEA8BCE00E1386B /* MLXHuggingFace */,
 				2AE295F62FEA8BCE00E1386B /* MLXLLM */,
 				2AE295F82FEA8BCE00E1386B /* MLXLMCommon */,
-				2AE295FA2FEA8BCE00E1386B /* MLXVLM */,
 				2AE295FD2FEA8E9C00E1386B /* HuggingFace */,
 				2AE296002FEA8EA900E1386B /* Hub */,
 				2AE296022FEA8EA900E1386B /* Tokenizers */,
@@ -477,21 +465,6 @@
 			package = 2ADFBF792E03F2D100B180E3 /* XCRemoteSwiftPackageReference "mlx-swift" */;
 			productName = MLXRandom;
 		};
-		2AE295EE2FEA8BCE00E1386B /* BenchmarkHelpers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2AE295ED2FEA8BCE00E1386B /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = BenchmarkHelpers;
-		};
-		2AE295F02FEA8BCE00E1386B /* IntegrationTestHelpers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2AE295ED2FEA8BCE00E1386B /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = IntegrationTestHelpers;
-		};
-		2AE295F22FEA8BCE00E1386B /* MLXEmbedders */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2AE295ED2FEA8BCE00E1386B /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXEmbedders;
-		};
 		2AE295F42FEA8BCE00E1386B /* MLXHuggingFace */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 2AE295ED2FEA8BCE00E1386B /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
@@ -506,11 +479,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2AE295ED2FEA8BCE00E1386B /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXLMCommon;
-		};
-		2AE295FA2FEA8BCE00E1386B /* MLXVLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2AE295ED2FEA8BCE00E1386B /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXVLM;
 		};
 		2AE295FD2FEA8E9C00E1386B /* HuggingFace */ = {
 			isa = XCSwiftPackageProductDependency;

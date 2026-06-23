@@ -55,7 +55,7 @@ class MemoryManager {
             reducedLimit = 128 * 1024 * 1024 // 128MB
         }
         
-        MLX.GPU.set(cacheLimit: reducedLimit)
+        MLX.Memory.cacheLimit = reducedLimit
         print("✓ Reduced GPU cache limit to \(reducedLimit/1024/1024)MB for \(DeviceUtils.chipDescription)")
         
         // 2. Clear any image caches
@@ -135,7 +135,7 @@ class MemoryManager {
             defaultLimit = 32 * 1024 * 1024 // Conservative default
         }
         
-        MLX.GPU.set(cacheLimit: defaultLimit)
+        MLX.Memory.cacheLimit = defaultLimit
         print("✓ Reset GPU cache limit to \(defaultLimit/1024/1024)MB for \(DeviceUtils.chipDescription)")
     }
 }

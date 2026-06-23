@@ -48,7 +48,6 @@ class LLMEvaluator: ObservableObject {
     @Published var tokensGenerated = 0
     
     private var modelConfiguration: ModelConfiguration?
-    private let maxTokens = 2048
     private let generateParameters = GenerateParameters(maxTokens: 2048, temperature: 0.7)
     private let cancellationToken = CancellationToken()
     
