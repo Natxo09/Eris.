@@ -156,10 +156,10 @@ class AIModelsRegistry {
     // MARK: - Model Definitions
     private let models: [AIModel] = [
         // ============================================
-        // GENERAL PURPOSE MODELS (Updated 2025)
+        // GENERAL PURPOSE MODELS (Updated 2026)
         // ============================================
 
-        // --- Qwen3 Series (NEW - Recommended) ---
+        // --- Qwen3 / Qwen3.5 Series (Recommended) ---
         AIModel(
             id: "qwen3_0_6B",
             configuration: ModelConfiguration(id: "mlx-community/Qwen3-0.6B-4bit"),
@@ -169,6 +169,17 @@ class AIModelsRegistry {
             estimatedRAMUsage: 400,
             minimumChipRequired: .a13,
             parameterCount: "0.6B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "qwen3_5_0_8B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen3.5-0.8B-4bit"),
+            category: .general,
+            displayName: "Qwen3.5 0.8B",
+            description: "Newest ultra-light Qwen, thinking and non-thinking modes",
+            estimatedRAMUsage: 750,
+            minimumChipRequired: .a13,
+            parameterCount: "0.8B",
             quantization: "4-bit"
         ),
         AIModel(
@@ -182,8 +193,199 @@ class AIModelsRegistry {
             parameterCount: "1.7B",
             quantization: "4-bit"
         ),
+        AIModel(
+            id: "qwen3_5_2B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen3.5-2B-4bit"),
+            category: .general,
+            displayName: "Qwen3.5 2B",
+            description: "Compact Qwen3.5 with strong multilingual reasoning",
+            estimatedRAMUsage: 2000,
+            minimumChipRequired: .a15,
+            parameterCount: "2B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "qwen3_4B_2507",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen3-4B-Instruct-2507-4bit"),
+            category: .general,
+            displayName: "Qwen3 4B (2507)",
+            description: "Alibaba's updated flagship small model with strong reasoning",
+            estimatedRAMUsage: 2600,
+            minimumChipRequired: .a15,
+            parameterCount: "4B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "qwen3_5_4B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen3.5-4B-MLX-4bit"),
+            category: .general,
+            displayName: "Qwen3.5 4B",
+            description: "Capable Qwen3.5, excellent quality for its size",
+            estimatedRAMUsage: 3400,
+            minimumChipRequired: .a16,
+            parameterCount: "4B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "qwen3_8B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen3-8B-4bit"),
+            category: .general,
+            displayName: "Qwen3 8B",
+            description: "Large Qwen3 with top quality, best on iPad/Mac",
+            estimatedRAMUsage: 5200,
+            minimumChipRequired: .a17Pro,
+            parameterCount: "8B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "qwen3_5_9B",
+            configuration: ModelConfiguration(id: "mlx-community/Qwen3.5-9B-4bit"),
+            category: .general,
+            displayName: "Qwen3.5 9B",
+            description: "Largest Qwen3.5, flagship quality for ample-RAM devices",
+            estimatedRAMUsage: 6600,
+            minimumChipRequired: .a17Pro,
+            parameterCount: "9B",
+            quantization: "4-bit"
+        ),
 
-        // --- Phi-4 (NEW - Replaces Phi 3.5) ---
+        // --- Gemma Series (NEW - Replaces Gemma 2) ---
+        AIModel(
+            id: "gemma3_1B",
+            configuration: ModelConfiguration(id: "mlx-community/gemma-3-1b-it-qat-4bit"),
+            category: .general,
+            displayName: "Gemma 3 1B",
+            description: "Google's compact model, QAT 4-bit for better quality",
+            estimatedRAMUsage: 900,
+            minimumChipRequired: .a13,
+            parameterCount: "1B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "gemma3_4B",
+            configuration: ModelConfiguration(id: "mlx-community/gemma-3-text-4b-it-4bit"),
+            category: .general,
+            displayName: "Gemma 3 4B",
+            description: "Google's capable 4B model with strong reasoning (text-only build)",
+            estimatedRAMUsage: 3000,
+            minimumChipRequired: .a15,
+            parameterCount: "4B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "gemma3n_E2B",
+            configuration: ModelConfiguration(id: "mlx-community/gemma-3n-E2B-it-lm-4bit"),
+            category: .general,
+            displayName: "Gemma 3n E2B",
+            description: "Google's efficient MatFormer model (text build)",
+            estimatedRAMUsage: 2900,
+            minimumChipRequired: .a15,
+            parameterCount: "E2B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "gemma4_e2b",
+            configuration: ModelConfiguration(id: "mlx-community/gemma-4-e2b-it-4bit"),
+            category: .general,
+            displayName: "Gemma 4 E2B",
+            description: "Google's newest small model, strong general performance",
+            estimatedRAMUsage: 4000,
+            minimumChipRequired: .a16,
+            parameterCount: "E2B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "gemma4_e4b",
+            configuration: ModelConfiguration(id: "mlx-community/gemma-4-e4b-it-4bit"),
+            category: .general,
+            displayName: "Gemma 4 E4B",
+            description: "Google's larger Gemma 4, high quality, best on iPad/Mac",
+            estimatedRAMUsage: 5800,
+            minimumChipRequired: .a17Pro,
+            parameterCount: "E4B",
+            quantization: "4-bit"
+        ),
+
+        // --- Compact multilingual (≤1.5B) ---
+        AIModel(
+            id: "ernie4_5_0_3B",
+            configuration: ModelConfiguration(id: "mlx-community/ERNIE-4.5-0.3B-PT-4bit"),
+            category: .general,
+            displayName: "ERNIE 4.5 0.3B",
+            description: "Baidu's tiny multilingual model, extremely light",
+            estimatedRAMUsage: 300,
+            minimumChipRequired: .a13,
+            parameterCount: "0.3B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "lfm2_5_1_2B",
+            configuration: ModelConfiguration(id: "mlx-community/LFM2.5-1.2B-Instruct-4bit"),
+            category: .general,
+            displayName: "LFM2.5 1.2B",
+            description: "Liquid AI's fast hybrid model, efficient on-device",
+            estimatedRAMUsage: 800,
+            minimumChipRequired: .a13,
+            parameterCount: "1.2B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "exaone4_1_2B",
+            configuration: ModelConfiguration(id: "mlx-community/exaone-4.0-1.2b-4bit"),
+            category: .general,
+            displayName: "EXAONE 4.0 1.2B",
+            description: "LG's compact bilingual model with solid reasoning",
+            estimatedRAMUsage: 850,
+            minimumChipRequired: .a13,
+            parameterCount: "1.2B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "llama3_2_1B",
+            configuration: ModelConfiguration(id: "mlx-community/Llama-3.2-1B-Instruct-4bit"),
+            category: .general,
+            displayName: "Llama 3.2 1B",
+            description: "Meta's efficient model, great for everyday conversations",
+            estimatedRAMUsage: 800,
+            minimumChipRequired: .a13,
+            parameterCount: "1B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "granite4_1B",
+            configuration: ModelConfiguration(id: "mlx-community/granite-4.0-h-1b-4bit"),
+            category: .general,
+            displayName: "Granite 4.0 1B",
+            description: "IBM's efficient hybrid model for everyday tasks",
+            estimatedRAMUsage: 1000,
+            minimumChipRequired: .a14,
+            parameterCount: "1B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "falconH1_1_5B",
+            configuration: ModelConfiguration(id: "mlx-community/Falcon-H1-1.5B-Instruct-4bit"),
+            category: .general,
+            displayName: "Falcon-H1 1.5B",
+            description: "TII's hybrid attention/Mamba model, compact and fast",
+            estimatedRAMUsage: 1050,
+            minimumChipRequired: .a14,
+            parameterCount: "1.5B",
+            quantization: "4-bit"
+        ),
+
+        // --- Mid-size (3-4B) ---
+        AIModel(
+            id: "smollm3_3B",
+            configuration: ModelConfiguration(id: "mlx-community/SmolLM3-3B-4bit"),
+            category: .general,
+            displayName: "SmolLM3 3B",
+            description: "HuggingFace's multilingual model with reasoning and long context",
+            estimatedRAMUsage: 2000,
+            minimumChipRequired: .a15,
+            parameterCount: "3B",
+            quantization: "4-bit"
+        ),
         AIModel(
             id: "phi4_mini",
             configuration: ModelConfiguration(id: "mlx-community/Phi-4-mini-instruct-4bit"),
@@ -195,17 +397,50 @@ class AIModelsRegistry {
             parameterCount: "3.8B",
             quantization: "4-bit"
         ),
-
-        // --- Llama 3.2 (Maintained - Stable) ---
         AIModel(
-            id: "llama3_2_1B",
-            configuration: ModelConfiguration(id: "mlx-community/Llama-3.2-1B-Instruct-4bit"),
+            id: "nemotron3_nano_4B",
+            configuration: ModelConfiguration(id: "mlx-community/NVIDIA-Nemotron-3-Nano-4B-4bit"),
             category: .general,
-            displayName: "Llama 3.2 1B",
-            description: "Meta's efficient model, great for everyday conversations",
-            estimatedRAMUsage: 800,
-            minimumChipRequired: .a13,
-            parameterCount: "1B",
+            displayName: "Nemotron 3 Nano 4B",
+            description: "NVIDIA's efficient hybrid model with strong reasoning",
+            estimatedRAMUsage: 2600,
+            minimumChipRequired: .a15,
+            parameterCount: "4B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "ministral3_3B",
+            configuration: ModelConfiguration(id: "mlx-community/Ministral-3-3B-Instruct-2512-4bit"),
+            category: .general,
+            displayName: "Ministral 3 3B",
+            description: "Mistral's compact 2025 model with strong quality",
+            estimatedRAMUsage: 3100,
+            minimumChipRequired: .a15,
+            parameterCount: "3B",
+            quantization: "4-bit"
+        ),
+
+        // --- Large general (best on iPad / Mac · M-class) ---
+        AIModel(
+            id: "olmo3_7B",
+            configuration: ModelConfiguration(id: "mlx-community/Olmo-3-7B-Instruct-4bit"),
+            category: .general,
+            displayName: "OLMo 3 7B",
+            description: "AllenAI's fully open 7B model, best on iPad/Mac",
+            estimatedRAMUsage: 4600,
+            minimumChipRequired: .a17Pro,
+            parameterCount: "7B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "apertus_8B",
+            configuration: ModelConfiguration(id: "mlx-community/Apertus-8B-Instruct-2509-4bit"),
+            category: .general,
+            displayName: "Apertus 8B",
+            description: "Swiss fully open multilingual 8B, best on iPad/Mac",
+            estimatedRAMUsage: 5100,
+            minimumChipRequired: .a17Pro,
+            parameterCount: "8B",
             quantization: "4-bit"
         ),
 
@@ -248,7 +483,7 @@ class AIModelsRegistry {
         ),
 
         // ============================================
-        // CODE MODELS (NEW Category)
+        // CODE MODELS
         // ============================================
         AIModel(
             id: "qwen2_5_coder_0_5B",
@@ -288,6 +523,17 @@ class AIModelsRegistry {
         // REASONING MODELS
         // ============================================
         AIModel(
+            id: "lfm2_5_thinking_1_2B",
+            configuration: ModelConfiguration(id: "mlx-community/LFM2.5-1.2B-Thinking-4bit"),
+            category: .reasoning,
+            displayName: "LFM2.5 Thinking 1.2B",
+            description: "Liquid AI's lightweight thinking model, fast on-device",
+            estimatedRAMUsage: 800,
+            minimumChipRequired: .a13,
+            parameterCount: "1.2B",
+            quantization: "4-bit"
+        ),
+        AIModel(
             id: "deepseekR1_1_5B_4bit",
             configuration: ModelConfiguration(id: "mlx-community/DeepSeek-R1-Distill-Qwen-1.5B-4bit"),
             category: .reasoning,
@@ -296,6 +542,50 @@ class AIModelsRegistry {
             estimatedRAMUsage: 1200,
             minimumChipRequired: .a14,
             parameterCount: "1.5B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "openmath_nemotron_1_5B",
+            configuration: ModelConfiguration(id: "mlx-community/OpenMath-Nemotron-1.5B-4bit"),
+            category: .reasoning,
+            displayName: "OpenMath Nemotron 1.5B",
+            description: "Compact math-focused reasoning model",
+            estimatedRAMUsage: 1050,
+            minimumChipRequired: .a14,
+            parameterCount: "1.5B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "cogito_v1_3B",
+            configuration: ModelConfiguration(id: "mlx-community/deepcogito-cogito-v1-preview-llama-3B-4bit"),
+            category: .reasoning,
+            displayName: "Cogito v1 3B",
+            description: "Hybrid reasoning model with deliberate thinking",
+            estimatedRAMUsage: 2100,
+            minimumChipRequired: .a15,
+            parameterCount: "3B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "ministral3_reasoning_3B",
+            configuration: ModelConfiguration(id: "mlx-community/Ministral-3-3B-Reasoning-2512-4bit"),
+            category: .reasoning,
+            displayName: "Ministral 3 Reasoning 3B",
+            description: "Mistral's compact reasoning model",
+            estimatedRAMUsage: 3100,
+            minimumChipRequired: .a15,
+            parameterCount: "3B",
+            quantization: "4-bit"
+        ),
+        AIModel(
+            id: "olmo3_think_7B",
+            configuration: ModelConfiguration(id: "mlx-community/Olmo-3-7B-Think-4bit"),
+            category: .reasoning,
+            displayName: "OLMo 3 Think 7B",
+            description: "AllenAI's open reasoning model, best on iPad/Mac",
+            estimatedRAMUsage: 4600,
+            minimumChipRequired: .a17Pro,
+            parameterCount: "7B",
             quantization: "4-bit"
         )
     ]
