@@ -27,10 +27,13 @@ struct DeviceUtils {
         case a17Pro = 6
         case a18 = 7
         case a18Pro = 8
-        case m1 = 9
-        case m2 = 10
-        case m3 = 11
-        case m4 = 12
+        case a19 = 9
+        case a19Pro = 10
+        case m1 = 11
+        case m2 = 12
+        case m3 = 13
+        case m4 = 14
+        case m5 = 15
     }
     
     static var isSimulator: Bool {
@@ -122,7 +125,20 @@ struct DeviceUtils {
         if model.contains("iphone17,3") || model.contains("iphone17,4") {
             return .a18Pro
         }
-        
+        // A18 - iPhone 16e
+        if model.contains("iphone17,5") {
+            return .a18
+        }
+        // A19 Pro - iPhone 17 Pro/Pro Max and iPhone Air
+        if model.contains("iphone18,1") || model.contains("iphone18,2") ||
+           model.contains("iphone18,4") {
+            return .a19Pro
+        }
+        // A19 - iPhone 17
+        if model.contains("iphone18,3") {
+            return .a19
+        }
+
         // iPad models with M-series chips
         if model.contains("ipad13,4") || model.contains("ipad13,5") ||
            model.contains("ipad13,6") || model.contains("ipad13,7") {
@@ -143,7 +159,16 @@ struct DeviceUtils {
            model.contains("ipad16,5") || model.contains("ipad16,6") {
             return .m4 // iPad Pro M4
         }
-        
+        if model.contains("ipad16,1") || model.contains("ipad16,2") {
+            return .a17Pro // iPad mini (A17 Pro)
+        }
+        if model.contains("ipad15,3") || model.contains("ipad15,4") {
+            return .m3 // iPad Air M3
+        }
+        if model.contains("ipad17,1") || model.contains("ipad17,2") {
+            return .m5 // iPad Pro M5
+        }
+
         // Mac detection (when running as Designed for iPad)
         #if os(iOS) && arch(arm64)
         if ProcessInfo.processInfo.isiOSAppOnMac {
@@ -157,6 +182,8 @@ struct DeviceUtils {
                 return .m3
             } else if cpuType.contains("Apple M4") {
                 return .m4
+            } else if cpuType.contains("Apple M5") {
+                return .m5
             }
             return .m1 // Default to M1 if can't detect specific version
         }
@@ -272,7 +299,22 @@ struct DeviceUtils {
         if model.contains("iphone17,4") {
             return "iPhone 16 Pro Max"
         }
-        
+        if model.contains("iphone17,5") {
+            return "iPhone 16e"
+        }
+        if model.contains("iphone18,1") {
+            return "iPhone 17 Pro"
+        }
+        if model.contains("iphone18,2") {
+            return "iPhone 17 Pro Max"
+        }
+        if model.contains("iphone18,3") {
+            return "iPhone 17"
+        }
+        if model.contains("iphone18,4") {
+            return "iPhone Air"
+        }
+
         // iPad models mapping
         if model.contains("ipad13,4") || model.contains("ipad13,5") ||
            model.contains("ipad13,6") || model.contains("ipad13,7") {
@@ -293,7 +335,16 @@ struct DeviceUtils {
            model.contains("ipad16,5") || model.contains("ipad16,6") {
             return "iPad Pro (M4)"
         }
-        
+        if model.contains("ipad16,1") || model.contains("ipad16,2") {
+            return "iPad mini (A17 Pro)"
+        }
+        if model.contains("ipad15,3") || model.contains("ipad15,4") {
+            return "iPad Air (M3)"
+        }
+        if model.contains("ipad17,1") || model.contains("ipad17,2") {
+            return "iPad Pro (M5)"
+        }
+
         // Simulator
         if isSimulator {
             return "Simulator"
@@ -337,6 +388,10 @@ struct DeviceUtils {
                     return "A18 (Metal 3)"
                 case .a18Pro:
                     return "A18 Pro (Metal 3)"
+                case .a19:
+                    return "A19 (Metal 3)"
+                case .a19Pro:
+                    return "A19 Pro (Metal 3)"
                 case .m1:
                     return "M1 (Metal 3)"
                 case .m2:
@@ -345,6 +400,8 @@ struct DeviceUtils {
                     return "M3 (Metal 3)"
                 case .m4:
                     return "M4 (Metal 3)"
+                case .m5:
+                    return "M5 (Metal 3)"
                 case .unsupported:
                     return "Unsupported Chip"
                 case .unknown:
@@ -371,6 +428,10 @@ struct DeviceUtils {
             return "A18"
         case .a18Pro:
             return "A18 Pro"
+        case .a19:
+            return "A19"
+        case .a19Pro:
+            return "A19 Pro"
         case .m1:
             return "M1"
         case .m2:
@@ -379,6 +440,8 @@ struct DeviceUtils {
             return "M3"
         case .m4:
             return "M4"
+        case .m5:
+            return "M5"
         case .unsupported:
             return "Unsupported Chip"
         case .unknown:

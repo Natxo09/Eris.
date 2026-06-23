@@ -127,9 +127,9 @@ class MemoryManager {
             defaultLimit = 64 * 1024 * 1024 // 64MB for 4GB RAM devices
         case .a15:
             defaultLimit = 128 * 1024 * 1024 // 128MB for 6GB RAM devices
-        case .a16, .a17Pro, .a18, .a18Pro:
+        case .a16, .a17Pro, .a18, .a18Pro, .a19, .a19Pro:
             defaultLimit = 256 * 1024 * 1024 // 256MB for newer devices
-        case .m1, .m2, .m3, .m4:
+        case .m1, .m2, .m3, .m4, .m5:
             defaultLimit = 512 * 1024 * 1024 // 512MB for iPad M-series
         default:
             defaultLimit = 32 * 1024 * 1024 // Conservative default
