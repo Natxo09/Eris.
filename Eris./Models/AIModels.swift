@@ -315,6 +315,14 @@ class AIModelsRegistry {
         let chipFamily = DeviceUtils.chipFamily
         let deviceRAM = DeviceUtils.estimatedRAM
 
+        // Safety net: hardware newer than our chip table resolves to .unknown.
+        // If the device supports Metal 3 it can run MLX, so don't blanket-block it —
+        // otherwise a brand-new top-tier device (e.g. a future iPhone) would show
+        // every model as "Not recommended - High crash risk".
+        if chipFamily == .unknown && DeviceUtils.canRunMLX {
+            return .compatible
+        }
+
         // Check if chip meets minimum requirement
         guard chipFamily.rawValue >= model.minimumChipRequired.rawValue else {
             return .notRecommended
@@ -405,9 +413,13 @@ extension DeviceUtils {
             return 8192  // 8GB
         case .a18, .a18Pro:
             return 8192  // 8GB
+        case .a19:
+            return 8192  // 8GB (iPhone 17)
+        case .a19Pro:
+            return 12288 // 12GB (iPhone 17 Pro/Pro Max, iPhone Air)
         case .m1, .m2:
             return 8192  // 8GB minimum
-        case .m3, .m4:
+        case .m3, .m4, .m5:
             return 16384 // 16GB minimum
         default:
             return 4096  // Conservative estimate

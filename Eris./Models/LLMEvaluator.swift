@@ -156,10 +156,10 @@ class LLMEvaluator: ObservableObject {
         case .a15:
             // iPhone 13, 14 series - 6GB RAM devices
             baseCacheSize = 128
-        case .a16, .a17Pro, .a18, .a18Pro:
-            // iPhone 14 Pro, 15, 16 series - 6-8GB RAM devices
+        case .a16, .a17Pro, .a18, .a18Pro, .a19, .a19Pro:
+            // iPhone 14 Pro, 15, 16, 17 series - 6-12GB RAM devices
             baseCacheSize = 256
-        case .m1, .m2, .m3, .m4:
+        case .m1, .m2, .m3, .m4, .m5:
             // iPad with M chips - 8GB+ RAM
             baseCacheSize = 512
         default:
